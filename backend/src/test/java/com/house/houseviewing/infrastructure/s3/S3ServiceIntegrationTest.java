@@ -95,6 +95,7 @@ class S3ServiceIntegrationTest {
         S3Template s3Template = new S3Template(s3Client, outputStreamProvider, objectConverter, s3Presigner);
 
         s3Service = new S3Service(s3Template);
+        s3Service.setS3Presigner(s3Presigner);
         ReflectionTestUtils.setField(s3Service, "bucket", BUCKET_NAME);
     }
 
@@ -131,7 +132,7 @@ class S3ServiceIntegrationTest {
                     .key(result.getPdfKey())
                     .build());
 
-            assertThat(result.getPdfKey()).startsWith("analysis_").endsWith("originFileName.pdf");
+            assertThat(result.getPdfKey()).matches("analysis_[a-f0-9-]+\\.pdf");
             assertThat(result.getPdfPath()).isNotBlank();
             assertThat(result.getPdfSizeBytes()).isEqualTo((long) pdf.length);
             assertThat(result.getPdfName()).isEqualTo("안전_진단_리포트.pdf");
@@ -172,7 +173,7 @@ class S3ServiceIntegrationTest {
             assertThat(results).hasSize(3);
             assertThat(results).extracting("pdfKey").doesNotHaveDuplicates();
             results.forEach(result -> {
-                assertThat(result.getPdfKey()).startsWith("analysis_").endsWith("originFileName.pdf");
+                assertThat(result.getPdfKey()).matches("analysis_[a-f0-9-]+\\.pdf");
                 assertThat(result.getPdfPath()).isNotBlank();
             });
         }

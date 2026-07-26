@@ -4,7 +4,6 @@ import com.house.houseviewing.global.exception.AppException;
 import com.house.houseviewing.global.exception.ExceptionCode;
 import com.house.houseviewing.global.file.pdf.dto.PdfUploadResult;
 import io.awspring.cloud.s3.ObjectMetadata;
-import io.awspring.cloud.s3.S3Resource;
 import io.awspring.cloud.s3.S3Template;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,8 +19,6 @@ import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
@@ -42,9 +39,6 @@ class S3ServiceTest {
     @Mock
     private S3Template s3Template;
 
-    @Mock
-    private S3Resource s3Resource;
-
     @Nested 
     @DisplayName("PDF 업로드")
     class PdfUpload {
@@ -58,11 +52,9 @@ class S3ServiceTest {
         @DisplayName("성공 - 파일명 패턴 및 모든 필드 정확히 반환")
         void 성공() throws Exception {
             byte[] pdf = "pdf-data".getBytes(StandardCharsets.UTF_8);
-            URL expectedUrl = new URL("https://test-bucket.s3.amazonaws.com/analysis_uuid-originFileName.pdf");
 
             given(s3Template.upload(anyString(), anyString(), any(ByteArrayInputStream.class), any(ObjectMetadata.class)))
-                    .willReturn(s3Resource);
-            given(s3Resource.getURL()).willReturn(expectedUrl);
+                    .willReturn(null);
 
             PdfUploadResult result = s3Service.pdfUpload(pdf);
 
@@ -72,10 +64,11 @@ class S3ServiceTest {
             verify(s3Template).upload(bucketCaptor.capture(), keyCaptor.capture(), any(ByteArrayInputStream.class), metadataCaptor.capture());
 
             assertThat(bucketCaptor.getValue()).isEqualTo("test-bucket");
-            assertThat(keyCaptor.getValue()).matches("analysis_[a-f0-9-]+originFileName\\.pdf");
+            assertThat(keyCaptor.getValue()).matches("analysis_[a-f0-9-]+\\.pdf");
             assertThat(metadataCaptor.getValue().getContentType()).isEqualTo("application/pdf");
             assertThat(result.getPdfKey()).isEqualTo(keyCaptor.getValue());
-            assertThat(result.getPdfPath()).isEqualTo(expectedUrl.toString());
+            assertThat(result.getPdfPath())
+                    .isEqualTo("https://test-bucket.s3.amazonaws.com/" + keyCaptor.getValue());
             assertThat(result.getPdfSizeBytes()).isEqualTo((long) pdf.length);
             assertThat(result.getPdfName()).isEqualTo("안전_진단_리포트.pdf");
         }
@@ -84,15 +77,13 @@ class S3ServiceTest {
         @DisplayName("성공 - 빈 PDF 배열도 업로드 가능")
         void 빈_배열_업로드_성공() throws Exception {
             byte[] emptyPdf = new byte[0];
-            URL expectedUrl = new URL("https://test-bucket.s3.amazonaws.com/analysis_uuid-originFileName.pdf");
 
             given(s3Template.upload(anyString(), anyString(), any(ByteArrayInputStream.class), any(ObjectMetadata.class)))
-                    .willReturn(s3Resource);
-            given(s3Resource.getURL()).willReturn(expectedUrl);
+                    .willReturn(null);
 
             PdfUploadResult result = s3Service.pdfUpload(emptyPdf);
 
-            assertThat(result.getPdfKey()).startsWith("analysis_").endsWith("originFileName.pdf");
+            assertThat(result.getPdfKey()).startsWith("analysis_").endsWith(".pdf");
             assertThat(result.getPdfSizeBytes()).isEqualTo(0L);
         }
 
@@ -102,22 +93,20 @@ class S3ServiceTest {
             byte[] pdf = "pdf-data".getBytes(StandardCharsets.UTF_8);
 
             given(s3Template.upload(anyString(), anyString(), any(ByteArrayInputStream.class), any(ObjectMetadata.class)))
-                    .willReturn(s3Resource);
-            given(s3Resource.getURL()).willReturn(new URL("https://example.com/test.pdf"));
+                    .willReturn(null);
 
             PdfUploadResult result1 = s3Service.pdfUpload(pdf);
             PdfUploadResult result2 = s3Service.pdfUpload(pdf);
 
             assertThat(result1.getPdfKey()).isNotEqualTo(result2.getPdfKey());
-            UUID.fromString(result1.getPdfKey().replace("analysis_", "").replace("originFileName.pdf", ""));
+            UUID.fromString(result1.getPdfKey().replace("analysis_", "").replace(".pdf", ""));
         }
 
         @Test
-        @DisplayName("실패 - URL 가져오기 실패 시 IOException → AppException 변환")
-        void URL_가져오기_실패() throws Exception {
+        @DisplayName("실패 - S3 업로드 실패 시 AppException 변환")
+        void S3_업로드_실패() {
             given(s3Template.upload(anyString(), anyString(), any(ByteArrayInputStream.class), any(ObjectMetadata.class)))
-                    .willReturn(s3Resource);
-            given(s3Resource.getURL()).willThrow(new java.net.MalformedURLException("URL generation failed"));
+                    .willThrow(new IllegalStateException("S3 upload failed"));
 
             assertThatThrownBy(() -> s3Service.pdfUpload("pdf-data".getBytes(StandardCharsets.UTF_8)))
                     .isInstanceOf(AppException.class)
@@ -131,15 +120,14 @@ class S3ServiceTest {
             byte[] pdf = "test-pdf-content".getBytes(StandardCharsets.UTF_8);
 
             given(s3Template.upload(anyString(), anyString(), any(ByteArrayInputStream.class), any(ObjectMetadata.class)))
-                    .willReturn(s3Resource);
-            given(s3Resource.getURL()).willReturn(new URL("https://example.com/test.pdf"));
+                    .willReturn(null);
 
             s3Service.pdfUpload(pdf);
 
             ArgumentCaptor<ObjectMetadata> metadataCaptor = ArgumentCaptor.forClass(ObjectMetadata.class);
             verify(s3Template).upload(
                     org.mockito.ArgumentMatchers.eq("test-bucket"),
-                    org.mockito.ArgumentMatchers.matches("analysis_.+originFileName\\.pdf"),
+                    org.mockito.ArgumentMatchers.matches("analysis_[a-f0-9-]+\\.pdf"),
                     any(ByteArrayInputStream.class),
                     metadataCaptor.capture()
             );
