@@ -6,6 +6,7 @@
 /daemon/
 /native/
 /.idea/
+/.worktrees/
 
 ############################
 # OS
