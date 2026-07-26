@@ -76,6 +76,7 @@ captures/
 .env
 .env.*
 *.env
+!.env.production.example
 
 ############################
 # Spring Profiles (환경별 설정 숨김)

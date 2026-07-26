@@ -138,6 +138,7 @@ Add a tracked `.env.production.example` and an exception to `.gitignore`. Create
 - Health checks for MySQL, Redis, FastAPI, and Spring.
 - Spring dependencies on all three healthy services.
 - Environment-variable-only credentials.
+- FastAPI OCR, public-data, and Groq integration variables required by the current application import path.
 
 - [ ] **Step 3: Add the deployment script**
 
@@ -260,7 +261,9 @@ When `deploy=true`, validate all required Secrets without printing their values:
 ```text
 EC2_HOST EC2_USER EC2_SSH_KEY DEPLOY_PATH
 MYSQL_ROOT_PASSWORD MYSQL_DATABASE MYSQL_USER MYSQL_PASSWORD
-KAKAO_REST_API_KEY AWS_ACCESS_KEY AWS_SECRET_KEY JWT_SECRET
+KAKAO_REST_API_KEY AWS_ACCESS_KEY AWS_SECRET_KEY JWT_SECRET \
+API_URL SECRET_KEY RTMS_SERVICE_KEY RTMS_RH_TRADE_URL \
+RTMS_SH_TRADE_URL GROQ_API_KEY
 GHCR_USERNAME GHCR_READ_TOKEN
 ```
 
