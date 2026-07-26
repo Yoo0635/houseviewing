@@ -1,0 +1,23 @@
+# FastAPI 서버
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+
+# DTO / 설정
+pydantic>=2.8.2
+python-dotenv==1.2.1
+
+# PDF 생성
+pdfkit==1.0.0
+
+# AI 클라이언트
+openai>=1.0.0
+google-genai>=1.65.0
+
+# OCR 엔진
+PyMuPDF==1.24.5
+requests>=2.31.0
+
+# 시세 추정
+pandas>=2.0.0
+openpyxl>=3.1.0

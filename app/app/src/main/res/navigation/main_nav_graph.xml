@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main_nav_graph"
+    app:startDestination="@id/nav_home">
+
+    <fragment
+        android:id="@+id/nav_home"
+        android:name="com.capstone.houseviewingapp.home.HomeFragment"
+        android:label="홈">
+        <action
+            android:id="@+id/action_nav_home_to_nav_house_detail"
+            app:destination="@id/nav_house_detail" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_analysis"
+        android:name="com.capstone.houseviewingapp.analysis.AnalysisFragment"
+        />
+
+    <fragment
+        android:id="@+id/nav_ar_check"
+        android:name="com.capstone.houseviewingapp.archeck.ArCheckFramgent"
+        />
+
+    <fragment
+        android:id="@+id/nav_analysis_loading"
+        android:name="com.capstone.houseviewingapp.analysis.AnalysisLoadingFragment"
+        android:label="등기부등본 분석"
+        />
+
+    <fragment
+        android:id="@+id/nav_my"
+        android:name="com.capstone.houseviewingapp.my.MyFragment"
+        />
+
+    <fragment
+        android:id="@+id/nav_house_detail"
+        android:name="com.capstone.houseviewingapp.home.HouseDetailFragment"
+        android:label="집 상세">
+        <argument
+            android:name="houseId"
+            app:argType="long" />
+    </fragment>
+
+</navigation>

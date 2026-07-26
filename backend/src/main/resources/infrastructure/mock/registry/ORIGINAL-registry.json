@@ -1,0 +1,41 @@
+{
+  "snapshot": {
+    "viewed_at": "2025-11-30",
+    "address": {
+      "raw_type": "라벨_집합건물",
+      "address": "경기도 오산시 양산동 387 에덴하우스 제105호"
+    },
+    "gabu": [
+      {
+        "rank": 1,
+        "purpose": "소유권보존",
+        "receipt": {
+          "date": "2013-01-22",
+          "number": "10279"
+        },
+        "owners": [
+          {
+            "name": "염선제",
+            "share": "2분의 1"
+          },
+          {
+            "name": "최효순",
+            "share": "2분의 1"
+          }
+        ]
+      }
+    ],
+    "eulgu": [
+      {
+        "rank": 1,
+        "purpose": "근저당권설정",
+        "receipt": {
+          "date": "2013-02-07",
+          "number": "19904"
+        },
+        "max_claim_amount": 373320000,
+        "status": "유효"
+      }
+    ]
+  }
+}

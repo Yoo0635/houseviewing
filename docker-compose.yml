@@ -2,6 +2,8 @@ services:
   app:
     build: ./backend
     restart: unless-stopped
+    image: house-viewing-spring
+    container_name: spring-server
     depends_on:
       db:
         condition: service_healthy
@@ -11,6 +13,8 @@ services:
       - "8080:8080"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    env_file:
+      - ./.env
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/house_viewing
       - SPRING_DATASOURCE_USERNAME=root
@@ -20,13 +24,27 @@ services:
       - KAKAO_REST_API_KEY=${KAKAO_REST_API_KEY}
       - AWS_ACCESS_KEY=${AWS_ACCESS_KEY}
       - AWS_SECRET_KEY=${AWS_SECRET_KEY}
-      - PYTHON_API_URL=http://python-service:8000
+      - PYTHON_API_URL=http://python-server:8000
     networks:
       - app-network
+
+  android:
+    platform: linux/amd64
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+      args:
+        KOTLIN_VERSION: "2.0.21"
+        AGP_VERSION: "8.12.3"
+        COMPILE_SDK: "36"
+    image: android:local
+    profiles:
+      - android
 
   db:
     image: mysql:8.0
     restart: unless-stopped
+    container_name: mysql-server
     environment:
       MYSQL_ROOT_PASSWORD: 1234
       MYSQL_DATABASE: house_viewing
@@ -46,6 +64,7 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    container_name: redis-server
     ports:
       - "6379:6379"
     volumes:
@@ -59,6 +78,19 @@ services:
     networks:
       - app-network
 
+  # 파이썬 서버가 하나의 services 아래로 정상적으로 통합되었습니다.
+  python-server:
+    build: ./python # 폴더를 옮겼으므로 경로 수정 완료
+    image: house-viewing-python
+    container_name: python-server
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./.env
+    restart: unless-stopped
+    networks:
+      - app-network # 백엔드(app)와 통신하기 위해 같은 네트워크에 묶어줍니다.
+
 networks:
   app-network:
     driver: bridge
@@ -66,13 +98,3 @@ networks:
 volumes:
   db-data:
   redis-data:
-
-# Python 서비스 추가 예시:
-#   python-service:
-#     build: ./python
-#     container_name: python-api
-#     restart: unless-stopped
-#     ports:
-#       - "8000:8000"
-#     networks:
-#       - app-network

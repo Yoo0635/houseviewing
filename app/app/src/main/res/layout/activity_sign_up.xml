@@ -1,0 +1,573 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".login.SignUpActivity"
+    android:background="@color/white">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolBar"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageView
+            android:id="@+id/backButton"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/outline_arrow_back_ios_24" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:fontFamily="@font/pretendard_bold"
+            android:text="회원가입"
+            android:textSize="26sp" />
+
+    </com.google.android.material.appbar.MaterialToolbar>
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toolBar"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:id="@+id/nameLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="이름"
+                android:textSize="14sp"
+                android:fontFamily="@font/pretendard_medium"
+                android:textColor="@color/textgray"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="@id/nameTextInputLayout"
+                app:layout_constraintTop_toTopOf="parent"
+                android:layout_marginTop="8dp"
+                android:layout_marginStart="4dp"
+                />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/nameTextInputLayout"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                app:boxBackgroundMode="none"
+                app:hintEnabled="false"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/nameLabel"
+                android:layout_marginTop="10dp"
+                android:layout_marginHorizontal="24dp"
+                >
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/nameEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_rounded_edittext"
+                    android:backgroundTint="@color/gray"
+                    android:drawableStart="@drawable/round_person_24"
+                    android:drawablePadding="12dp"
+                    android:drawableTint="@color/icongray"
+                    android:includeFontPadding="false"
+                    android:hint="이름 입력" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <TextView
+                android:id="@+id/idLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="아이디"
+                android:textSize="14sp"
+                android:fontFamily="@font/pretendard_medium"
+                android:textColor="@color/textgray"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="@id/nameTextInputLayout"
+                app:layout_constraintTop_toBottomOf="@id/nameTextInputLayout"
+                android:layout_marginTop="24dp"
+                android:layout_marginStart="4dp"
+                />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/idTextInputLayout"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                app:boxBackgroundMode="none"
+                app:hintEnabled="false"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/checkButton"
+                app:layout_constraintTop_toBottomOf="@id/idLabel"
+                android:layout_marginTop="10dp"
+                android:layout_marginStart="24dp"
+                android:layout_marginEnd="15dp"
+                >
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/idEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_rounded_edittext"
+                    android:backgroundTint="@color/gray"
+                    android:drawableStart="@drawable/baseline_account_circle_24"
+                    android:drawablePadding="12dp"
+                    android:drawableTint="@color/icongray"
+                    android:includeFontPadding="false"
+                    android:hint="아이디 입력" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/checkButton"
+                android:layout_width="wrap_content"
+                android:layout_height="52dp"
+                app:layout_constraintStart_toEndOf="@id/idTextInputLayout"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="@id/idTextInputLayout"
+                app:layout_constraintBottom_toBottomOf="@id/idTextInputLayout"
+                app:cornerRadius="8dp"
+                android:text="중복 확인"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:backgroundTint="@color/blue"
+                android:layout_marginEnd="24dp"
+                android:paddingLeft="12dp"
+                android:paddingRight="12dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                />
+
+            <TextView
+                android:id="@+id/idStatusTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginTop="6dp"
+                android:fontFamily="@font/pretendard_medium"
+                android:text=""
+                android:textColor="@color/textgray"
+                android:textSize="12sp"
+                android:visibility="gone"
+                app:layout_constraintStart_toStartOf="@id/idTextInputLayout"
+                app:layout_constraintTop_toBottomOf="@id/idTextInputLayout" />
+
+            <TextView
+                android:id="@+id/emailLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="이메일"
+                android:textSize="14sp"
+                android:fontFamily="@font/pretendard_medium"
+                android:textColor="@color/textgray"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="@id/nameTextInputLayout"
+                app:layout_constraintTop_toBottomOf="@id/idStatusTextView"
+                android:layout_marginTop="24dp"
+                android:layout_marginStart="4dp"
+                />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/emailTextInputLayout"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                app:boxBackgroundMode="none"
+                app:hintEnabled="false"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/emailLabel"
+                android:layout_marginTop="10dp"
+                android:layout_marginHorizontal="24dp"
+                >
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/emailEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_rounded_edittext"
+                    android:backgroundTint="@color/gray"
+                    android:drawableStart="@drawable/baseline_email_24"
+                    android:includeFontPadding="false"
+                    android:drawablePadding="12dp"
+                    android:drawableTint="@color/icongray"
+                    android:hint="example@email.com" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <TextView
+                android:id="@+id/emailStatusTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginTop="6dp"
+                android:fontFamily="@font/pretendard_medium"
+                android:text=""
+                android:textColor="@color/textgray"
+                android:textSize="12sp"
+                android:visibility="gone"
+                app:layout_constraintStart_toStartOf="@id/emailTextInputLayout"
+                app:layout_constraintTop_toBottomOf="@id/emailTextInputLayout" />
+
+            <TextView
+                android:id="@+id/passwordLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="비밀번호"
+                android:textSize="14sp"
+                android:fontFamily="@font/pretendard_medium"
+                android:textColor="@color/textgray"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="@id/nameTextInputLayout"
+                app:layout_constraintTop_toBottomOf="@id/emailStatusTextView"
+                android:layout_marginTop="24dp"
+                android:layout_marginStart="4dp"
+                />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/passwordTextInputLayout"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                app:boxBackgroundMode="none"
+                app:hintEnabled="false"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/passwordLabel"
+                android:layout_marginTop="10dp"
+                android:layout_marginHorizontal="24dp"
+                app:endIconMode="password_toggle"
+                app:endIconTint="@color/icongray"
+                >
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/passwordEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_rounded_edittext"
+                    android:backgroundTint="@color/gray"
+                    android:drawableStart="@drawable/baseline_lock_24"
+                    android:drawablePadding="12dp"
+                    android:drawableTint="@color/icongray"
+                    android:includeFontPadding="false"
+                    android:inputType="textPassword"
+                    android:hint="8자 이상 입력" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+
+            <LinearLayout
+                android:id="@+id/passwordInfoLayout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                app:layout_constraintStart_toStartOf="@id/passwordLabel"
+                app:layout_constraintTop_toBottomOf="@id/passwordTextInputLayout"
+                android:layout_marginTop="6dp">
+
+                <ImageView
+                    android:id="@+id/passwordInfoIcon"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/baseline_error_24"
+                    app:tint="@color/icongray"
+                    android:layout_marginEnd="4dp"
+                    android:layout_marginTop="2dp"
+                    />
+
+                <TextView
+                    android:id="@+id/passwordInfoTextView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/textgray"
+                    android:text="영문, 숫자 포함 8자 이상"
+                    android:textSize="13sp"
+                    />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/passwordCheckLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="비밀번호 확인"
+                android:textSize="14sp"
+                android:fontFamily="@font/pretendard_medium"
+                android:textColor="@color/textgray"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="@id/nameTextInputLayout"
+                app:layout_constraintTop_toBottomOf="@id/passwordInfoLayout"
+                android:layout_marginTop="24dp"
+                android:layout_marginStart="4dp"
+                />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/passwordCheckTextInputLayout"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                app:boxBackgroundMode="none"
+                app:hintEnabled="false"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/passwordCheckLabel"
+                android:layout_marginTop="10dp"
+                android:layout_marginHorizontal="24dp"
+                app:endIconMode="password_toggle"
+                app:endIconTint="@color/icongray"
+
+                >
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/passwordCheckEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_rounded_edittext"
+                    android:backgroundTint="@color/gray"
+                    android:drawableStart="@drawable/baseline_lock_check_24"
+                    android:drawablePadding="12dp"
+                    android:drawableTint="@color/icongray"
+                    android:includeFontPadding="false"
+                    android:inputType="textPassword"
+                    android:hint="비밀번호 재입력" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <TextView
+                android:id="@+id/passwordCheckStatusTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginTop="6dp"
+                android:fontFamily="@font/pretendard_medium"
+                android:text=""
+                android:textColor="@color/textgray"
+                android:textSize="12sp"
+                android:visibility="gone"
+                app:layout_constraintStart_toStartOf="@id/passwordCheckTextInputLayout"
+                app:layout_constraintTop_toBottomOf="@id/passwordCheckTextInputLayout" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/termsCardView"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:layout_constraintStart_toStartOf="@id/passwordCheckTextInputLayout"
+                app:layout_constraintTop_toBottomOf="@id/passwordCheckStatusTextView"
+                app:layout_constraintEnd_toEndOf="@id/passwordCheckTextInputLayout"
+                android:layout_marginTop="24dp"
+                app:cardCornerRadius="12dp"
+                app:cardBackgroundColor="@color/gray"
+                >
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginTop="12dp">
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/allCheckBox"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            app:buttonTint="@color/selector_checkbox"
+                            android:layout_marginStart="10dp"
+                            />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="전체 동의"
+                            android:textSize="18sp"
+                            android:fontFamily="@font/pretendard_bold"
+                            android:layout_marginStart="2dp"
+                            android:includeFontPadding="false"
+                            android:paddingBottom="1dp"
+                            />
+
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/icongray"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginHorizontal="24dp"
+                        />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginTop="12dp">
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/termOfServieceCheckBox"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            app:buttonTint="@color/selector_checkbox"
+                            android:layout_marginStart="10dp"
+                            android:scaleX="0.8"
+                            android:scaleY="0.8"
+                            />
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:layout_weight="1">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="이용약관 동의서"
+                                android:textColor="@color/textgray"
+                                android:textSize="12sp"
+                                android:fontFamily="@font/pretendard_medium"
+                                android:includeFontPadding="false"
+                                android:paddingBottom="1dp"
+                                android:textStyle="bold"
+                                />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="(필수)"
+                                android:textColor="@color/blue"
+                                android:layout_marginStart="5dp"
+                                android:textSize="12sp"
+                                android:fontFamily="@font/pretendard_medium"
+                                android:includeFontPadding="false"
+                                android:paddingBottom="2dp"
+                                android:textStyle="bold"
+                                />
+
+
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+                        <TextView
+                            android:id="@+id/termTextView"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="보기"
+                            android:textColor="@color/textgray"
+                            android:textSize="12sp"
+                            android:fontFamily="@font/pretendard_medium"
+                            android:includeFontPadding="false"
+                            android:paddingBottom="1dp"
+                            android:textStyle="bold"
+                            android:layout_marginEnd="35dp"
+                            />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="10dp">
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/infoCheckBox"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            app:buttonTint="@color/selector_checkbox"
+                            android:layout_marginStart="10dp"
+                            android:scaleX="0.8"
+                            android:scaleY="0.8"
+                            />
+
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:layout_weight="1">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="개인정보 수집 및 이용 동의서"
+                            android:textColor="@color/textgray"
+                            android:textSize="12sp"
+                            android:fontFamily="@font/pretendard_medium"
+                            android:includeFontPadding="false"
+                            android:textStyle="bold"
+                            />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="(필수)"
+                            android:textColor="@color/blue"
+                            android:layout_marginStart="5dp"
+                            android:textSize="12sp"
+                            android:fontFamily="@font/pretendard_medium"
+                            android:includeFontPadding="false"
+                            android:paddingBottom="1dp"
+                            android:textStyle="bold"
+                            />
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+
+                        <TextView
+                            android:id="@+id/infoTextView"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/pretendard_medium"
+                            android:includeFontPadding="false"
+                            android:paddingBottom="1dp"
+                            android:text="보기"
+                            android:textColor="@color/textgray"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:layout_marginEnd="35dp"/>
+
+                    </LinearLayout>
+
+
+                </LinearLayout>
+
+
+            </com.google.android.material.card.MaterialCardView>
+
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/confirmButton"
+                android:layout_width="0dp"
+                android:layout_height="60dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/termsCardView"
+                app:layout_constraintBottom_toBottomOf="parent"
+                android:layout_marginTop="15dp"
+                android:backgroundTint="@color/blue"
+                android:text="집좀보자 시작하기"
+                android:textStyle="bold"
+                android:textSize="18sp"
+                app:cornerRadius="8dp"
+                android:fontFamily="@font/pretendard_bold"
+                android:layout_marginHorizontal="24dp"
+                android:layout_marginBottom="20dp"
+                android:gravity="center"
+                />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

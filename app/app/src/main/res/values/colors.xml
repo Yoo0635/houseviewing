@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="blackTitle">#333333</color>
+    <color name="gray">#F5F5F5</color>
+    <color name="blue">#0056D2</color>
+    <color name="blue2">#2E72E4</color>
+    <color name="darkgray">#666666</color>
+    <color name="icongray">#909090</color>
+    <color name="textgray">#757575</color>
+    <color name="grayblue">#CDDEF4</color>
+    <color name="coolgray">#F4F6FA</color>
+    <color name="hintcolor">#AFAEAE</color>
+    <color name="textgreen">#1B5E20</color>
+    <color name="green">#D6EDD7</color>
+    <color name="amber">#EF9923</color>
+    <color name="red">#FF1C1C</color>
+    <color name="textviewgray">#E8EDF5</color>
+    <color name="icon_muted_blue">#5570AB</color>
+    <color name="risk_red_bg">#FFF1F1</color>
+    <color name="risk_amber_bg">#FFF7E8</color>
+    <color name="risk_blue_bg">#EEF4FF</color>
+    <color name="risk_red_text">#D63A3A</color>
+    <color name="risk_amber_text">#C7821B</color>
+    <color name="risk_blue_text">#2E72E4</color>
+    <color name="analysis_card_stroke">#E8EDF5</color>
+    <color name="analysis_muted_bg">#F6F8FB</color>
+</resources>

@@ -1,0 +1,146 @@
+# .gitignore 파일 맨 위에 넣으세요
+/.gradle/
+/build/
+/out/
+/caches/
+/daemon/
+/native/
+/.idea/
+
+############################
+# OS
+############################
+.DS_Store
+Thumbs.db
+
+############################
+# Logs
+############################
+*.log
+logs/
+
+############################
+# Runtime
+############################
+*.pid
+*.seed
+*.pid.lock
+
+############################
+# Gradle (Build)
+############################
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+############################
+# Java (Build Output)
+############################
+*.class
+*.jar
+*.war
+*.ear
+hs_err_pid*
+*.hprof
+
+############################
+# IntelliJ
+############################
+.idea/
+*.iml
+out/
+
+############################
+# VSCode
+############################
+.vscode/
+
+############################
+# Android SDK (로컬 경로)
+############################
+local.properties
+**/local.properties
+
+############################
+# Android
+############################
+captures/
+.externalNativeBuild/
+.cxx/
+
+############################
+# Environment / Secrets
+############################
+.env
+.env.*
+*.env
+
+############################
+# Spring Profiles (환경별 설정 숨김)
+############################
+src/main/resources/application-local.yml
+src/main/resources/application-dev.yml
+src/main/resources/application-prod.yml
+
+############################
+# Upload / Files
+############################
+uploads/
+*.tmp
+
+############################
+# Test / Coverage
+############################
+coverage/
+*.coverage
+
+############################
+# Node (프론트 대비)
+############################
+node_modules/
+dist/
+
+# Gradle 찌꺼기들 확실히 차단
+.gradle/
+caches/
+daemon/
+native/
+# Android 앱 모듈 Gradle wrapper는 저장소에 포함 (위 wrapper/ 예외)
+!app/gradle/wrapper/
+!app/gradle/wrapper/**
+build/
+out/
+
+# ── API 키 / 환경변수 (절대 올리면 안 됨) ──
+.env
+
+# ── Python 자동 생성 파일 ──
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ── 가상환경 ──
+venv/
+.venv/
+env/
+
+# ── 테스트/런타임 임시 파일 ──
+*.pdf
+test_*.json
+*.html
+
+# ── OCR 런타임 생성 파일 ──
+uploads/
+pdf_pages/
+baselines/
+*.json
+result_layout.json
+snapshot.json
+final_result.json
+baseline_snapshot.json
+
+# ── IDE 설정 ──
+.vscode/
+.idea/

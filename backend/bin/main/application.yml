@@ -1,0 +1,63 @@
+spring:
+  application:
+    name: house-viewing
+
+  datasource:
+    url: jdbc:mysql://localhost:3307/house_viewing
+    username: root
+    password: 1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  # docker exec -it mysql-house-viewing mysql -u root -p
+  # http://localhost:8080/swagger-ui/index.html
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  # docker exec -it redis redis-cli
+
+  jpa:
+    hibernate:
+      ddl-auto: create # 테이블 새로 생성
+    show-sql: true # sql을 콘솔에 출력
+    properties:
+      hibernate:
+        format_sql: true # sql문을 정렬
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  cloud:
+    aws:
+      credentials:
+        access-key: ${AWS_ACCESS_KEY}
+        secret-key: ${AWS_SECRET_KEY}
+      s3:
+        bucket: house-viewing-storage
+      region:
+        static: ap-northeast-2
+      stack:
+        auto: false
+
+logging:
+  level:
+    root: info
+    org.springframework.web.servlet: debug # HTTP 요청 흐름 로그 (컨트롤러, 메서드, 요청, 응답 흐름)
+    org.hibernate.SQL: debug # 실제 DB 로그를 보여줌
+    org.hibernate.type.descriptor.sql.BasicBinder: trace # sql ? 값을 보여줌
+
+kakao:
+  api:
+    key: ${KAKAO_REST_API_KEY}
+    url: https://dapi.kakao.com
+
+python:
+  api:
+    url: http://localhost:8000
+
+jwt:
+  secret: your-very-long-and-secure-secret-key-at-least-32-chars
+  access-token-expiration: 3600000 # 1시간 (ms)
+  refresh-token-expiration: 604800000 # 7일 (ms)

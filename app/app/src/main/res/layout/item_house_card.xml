@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_margin="5dp"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="4dp"
+    app:cardBackgroundColor="@color/white"
+    app:strokeWidth="1dp"
+    app:strokeColor="@color/gray">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/homeCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Live 감시중"
+            android:fontFamily="@font/pretendard_medium"
+            android:includeFontPadding="false"
+            android:textColor="@color/textgreen"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="10dp"
+            app:chipBackgroundColor="@color/green"
+            app:chipCornerRadius="14dp"
+            app:chipStrokeWidth="0dp"
+            android:focusable="false"
+            android:clickable="false"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <View
+            android:id="@+id/corner"
+            android:layout_width="140dp"
+            android:layout_height="140dp"
+            android:layout_marginStart="16dp"
+            android:background="@drawable/bg_card_corner_circle"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:translationX="60dp"
+            android:translationY="-60dp"
+            />
+
+        <FrameLayout
+            android:id="@+id/moreButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="10dp"
+            android:clickable="true">
+
+            <ImageView
+                android:id="@+id/moreicon"
+                android:layout_width="25dp"
+                android:layout_height="25dp"
+                android:src="@drawable/outline_more_horiz_24"
+                android:layout_gravity="center"
+                />
+
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/homeNameText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/pretendard_bold"
+            android:text="서초 그랑자이 104동"
+            android:textSize="20sp"
+            app:layout_constraintStart_toStartOf="@id/chip"
+            android:includeFontPadding="false"
+            app:layout_constraintTop_toBottomOf="@id/chip"
+            android:layout_marginTop="16dp"/>
+
+        <TextView
+            android:id="@+id/addressText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="서울특별시 서초구 서초동 1234-56"
+            android:fontFamily="@font/pretendard_medium"
+            android:textSize="14sp"
+            android:textColor="@color/textgray"
+            app:layout_constraintTop_toBottomOf="@id/homeNameText"
+            app:layout_constraintStart_toStartOf="@id/chip"
+            android:includeFontPadding="false"
+            android:layout_marginTop="4dp"
+            />
+
+        <TextView
+            android:id="@+id/safeLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="LTV 점수"
+            android:textSize="12sp"
+            android:fontFamily="@font/pretendard_medium"
+            android:includeFontPadding="false"
+            android:textColor="@color/textgray"
+            app:layout_constraintTop_toBottomOf="@id/addressText"
+            app:layout_constraintStart_toStartOf="@id/chip"
+            android:layout_marginTop="24dp"
+            />
+
+        <LinearLayout
+            android:id="@+id/ltvValueLayout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/safeLabel"
+            app:layout_constraintStart_toStartOf="@id/chip"
+            android:orientation="horizontal"
+            android:layout_marginTop="4dp">
+
+            <TextView
+                android:id="@+id/ltvpercentTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="50"
+                android:includeFontPadding="false"
+                android:fontFamily="@font/pretendard_bold"
+                android:textSize="28sp"
+                android:textColor="@color/blue"/>
+
+            <TextView
+                android:id="@+id/percentText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="%"
+                android:includeFontPadding="false"
+                android:fontFamily="@font/pretendard_bold"
+                android:textSize="28sp"
+                android:textColor="@color/blue"/>
+
+
+        </LinearLayout>
+
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/progressBar"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/ltvValueLayout"
+            app:layout_constraintStart_toStartOf="@id/chip"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="10dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
+            app:trackColor="@color/gray"
+            android:indeterminate="false"
+            app:trackCornerRadius="4dp"
+            app:trackStopIndicatorSize="0dp"
+            app:trackThickness="4dp"
+            app:indicatorTrackGapSize="0dp"
+            />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+</com.google.android.material.card.MaterialCardView>
