@@ -16,7 +16,11 @@ FROM eclipse-temurin:17-jre-jammy
 
 WORKDIR /app
 
-RUN addgroup --system appgroup && adduser --system appuser --ingroup appgroup
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && addgroup --system appgroup \
+    && adduser --system appuser --ingroup appgroup
 
 COPY --from=builder /app/build/libs/*.jar app.jar
 

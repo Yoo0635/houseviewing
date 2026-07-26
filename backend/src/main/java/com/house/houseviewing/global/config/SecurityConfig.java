@@ -31,6 +31,7 @@ public class SecurityConfig {
             "/users/password/verify",
             "/users/password/reset",
             "/error",
+            "/actuator/health",
 
             // swagger
             "/v3/api-docs/**",

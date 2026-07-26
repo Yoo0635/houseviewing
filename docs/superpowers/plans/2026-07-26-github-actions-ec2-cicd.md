@@ -26,6 +26,7 @@
 - Modify: `backend/build.gradle`
 - Modify: `backend/src/main/resources/application.yml`
 - Modify: `backend/src/main/java/com/house/houseviewing/global/config/SecurityConfig.java`
+- Modify: `backend/Dockerfile`
 - Create: `backend/src/test/java/com/house/houseviewing/global/health/HealthEndpointIntegrationTest.java`
 
 **Interfaces:**
@@ -81,6 +82,8 @@ management:
 
 Replace literal operational settings with Spring environment placeholders while preserving local defaults, including `${JWT_SECRET:...}` and `${PYTHON_API_URL:http://localhost:8000}`.
 
+Install `curl` in the backend runtime image so Docker Compose can evaluate the Actuator health endpoint without running the application as root.
+
 - [ ] **Step 4: Start MySQL and Redis and rerun the focused test**
 
 Run:
@@ -98,6 +101,7 @@ Expected: PASS.
 ```bash
 git add backend/build.gradle backend/src/main/resources/application.yml \
   backend/src/main/java/com/house/houseviewing/global/config/SecurityConfig.java \
+  backend/Dockerfile \
   backend/src/test/java/com/house/houseviewing/global/health/HealthEndpointIntegrationTest.java
 git commit -m "feat: add deployment health endpoint"
 ```

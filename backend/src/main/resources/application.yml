@@ -3,23 +3,23 @@ spring:
     name: house-viewing
 
   datasource:
-    url: jdbc:mysql://localhost:3307/house_viewing
-    username: root
-    password: 1234
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3307/house_viewing}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:1234}
     driver-class-name: com.mysql.cj.jdbc.Driver
   # docker exec -it mysql-house-viewing mysql -u root -p
   # http://localhost:8080/swagger-ui/index.html
 
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
   # docker exec -it redis redis-cli
 
   jpa:
     hibernate:
-      ddl-auto: create # 테이블 새로 생성
-    show-sql: true # sql을 콘솔에 출력
+      ddl-auto: ${JPA_DDL_AUTO:create}
+    show-sql: ${JPA_SHOW_SQL:true}
     properties:
       hibernate:
         format_sql: true # sql문을 정렬
@@ -32,9 +32,9 @@ spring:
   cloud:
     aws:
       s3:
-        bucket: house-viewing-storage
+        bucket: ${AWS_S3_BUCKET:house-viewing-storage}
       region:
-        static: ap-northeast-2
+        static: ${AWS_REGION:ap-northeast-2}
       stack:
         auto: false
 
@@ -47,14 +47,24 @@ logging:
 
 kakao:
   api:
-    key: ${KAKAO_REST_API_KEY}
+    key: ${KAKAO_REST_API_KEY:}
     url: https://dapi.kakao.com
 
 python:
   api:
-    url: http://localhost:8000
+    url: ${PYTHON_API_URL:http://localhost:8000}
 
 jwt:
-  secret: your-very-long-and-secure-secret-key-at-least-32-chars
-  access-token-expiration: 3600000 # 1시간 (ms)
-  refresh-token-expiration: 604800000 # 7일 (ms)
+  secret: ${JWT_SECRET:your-very-long-and-secure-secret-key-at-least-32-chars}
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:3600000}
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
