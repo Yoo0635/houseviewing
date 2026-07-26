@@ -1,14 +1,362 @@
-name: CI/CD
+name: Publish and Deploy
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: Deploy the published images to the configured EC2 instance
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: production-publish-and-deploy
+  cancel-in-progress: false
 
 jobs:
-  My-Deploy-Job:
+  validate-backend:
+    name: Validate Backend
     runs-on: ubuntu-latest
-
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: 1234
+          MYSQL_DATABASE: house_viewing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -p1234 --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/house_viewing
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 1234
+      SPRING_DATA_REDIS_HOST: 127.0.0.1
+      SPRING_DATA_REDIS_PORT: 6379
+      JPA_DDL_AUTO: create-drop
+      JPA_SHOW_SQL: false
+      KAKAO_REST_API_KEY: cd-kakao-key
+      PYTHON_API_URL: http://127.0.0.1:8000
+      JWT_SECRET: cd-only-jwt-secret-at-least-32-characters
     steps:
-      - name: "Hello World"
-        run: echo "Hello World"
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Test and package backend
+        working-directory: backend
+        run: sh gradlew clean test bootJar --no-daemon
+
+  validate-python:
+    name: Validate Python
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      API_URL: https://example.invalid/ocr
+      SECRET_KEY: cd-ocr-secret
+      RTMS_SERVICE_KEY: cd-public-data-key
+      GROQ_API_KEY: cd-groq-key
+      GEMINI_FALLBACK_ENABLED: "false"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: python/requirements.txt
+
+      - name: Install Python dependencies
+        working-directory: python
+        run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt pytest
+
+      - name: Run Python tests
+        working-directory: python
+        run: python -m pytest tests -q
+
+  publish:
+    name: Publish Images to GHCR
+    needs:
+      - validate-backend
+      - validate-python
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      namespace: ${{ steps.image-names.outputs.namespace }}
+      repository: ${{ steps.image-names.outputs.repository }}
+      image_tag: ${{ steps.image-names.outputs.image_tag }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Normalize image names
+        id: image-names
+        shell: bash
+        run: |
+          namespace="${GITHUB_REPOSITORY_OWNER,,}"
+          repository="${GITHUB_REPOSITORY#*/}"
+          repository="${repository,,}"
+          {
+            echo "namespace=${namespace}"
+            echo "repository=${repository}"
+            echo "image_tag=${GITHUB_SHA}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and publish backend
+        uses: docker/build-push-action@v7
+        with:
+          context: backend
+          file: backend/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ steps.image-names.outputs.namespace }}/${{ steps.image-names.outputs.repository }}-backend:${{ steps.image-names.outputs.image_tag }}
+            ghcr.io/${{ steps.image-names.outputs.namespace }}/${{ steps.image-names.outputs.repository }}-backend:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Build and publish Python
+        uses: docker/build-push-action@v7
+        with:
+          context: python
+          file: python/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ steps.image-names.outputs.namespace }}/${{ steps.image-names.outputs.repository }}-python:${{ steps.image-names.outputs.image_tag }}
+            ghcr.io/${{ steps.image-names.outputs.namespace }}/${{ steps.image-names.outputs.repository }}-python:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=python
+          cache-to: type=gha,mode=max,scope=python
+
+  deploy:
+    name: Deploy to EC2
+    if: inputs.deploy
+    needs:
+      - publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Validate deployment secrets
+        shell: bash
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+          MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
+          MYSQL_USER: ${{ secrets.MYSQL_USER }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
+          AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          API_URL: ${{ secrets.API_URL }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          RTMS_SERVICE_KEY: ${{ secrets.RTMS_SERVICE_KEY }}
+          RTMS_RH_TRADE_URL: ${{ secrets.RTMS_RH_TRADE_URL }}
+          RTMS_SH_TRADE_URL: ${{ secrets.RTMS_SH_TRADE_URL }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
+        run: |
+          required=(
+            EC2_HOST EC2_USER EC2_SSH_KEY DEPLOY_PATH
+            MYSQL_ROOT_PASSWORD MYSQL_DATABASE MYSQL_USER MYSQL_PASSWORD
+            KAKAO_REST_API_KEY AWS_ACCESS_KEY AWS_SECRET_KEY JWT_SECRET
+            API_URL SECRET_KEY RTMS_SERVICE_KEY RTMS_RH_TRADE_URL
+            RTMS_SH_TRADE_URL GROQ_API_KEY GHCR_USERNAME GHCR_READ_TOKEN
+          )
+          missing=0
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error title=Missing deployment secret::${name} is not configured"
+              missing=1
+            fi
+          done
+          (( missing == 0 )) || exit 1
+
+          if [[ ! "${DEPLOY_PATH}" =~ ^/[A-Za-z0-9._/-]+$ ]]; then
+            echo "::error title=Invalid deployment path::DEPLOY_PATH must be an absolute path using letters, digits, dot, underscore, dash, and slash"
+            exit 1
+          fi
+
+      - name: Configure SSH
+        shell: bash
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          install -m 700 -d "${HOME}/.ssh"
+          printf '%s\n' "${EC2_SSH_KEY}" > "${HOME}/.ssh/deploy_key"
+          chmod 600 "${HOME}/.ssh/deploy_key"
+          ssh-keyscan -H "${EC2_HOST}" >> "${HOME}/.ssh/known_hosts"
+
+      - name: Create production environment file
+        id: production-env
+        shell: bash
+        env:
+          GHCR_NAMESPACE: ${{ needs.publish.outputs.namespace }}
+          GHCR_REPOSITORY: ${{ needs.publish.outputs.repository }}
+          IMAGE_TAG: ${{ needs.publish.outputs.image_tag }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+          MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
+          MYSQL_USER: ${{ secrets.MYSQL_USER }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
+          AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
+          AWS_REGION: ${{ vars.AWS_REGION || 'ap-northeast-2' }}
+          AWS_S3_BUCKET: ${{ vars.AWS_S3_BUCKET || 'house-viewing-storage' }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          API_URL: ${{ secrets.API_URL }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          RTMS_SERVICE_KEY: ${{ secrets.RTMS_SERVICE_KEY }}
+          RTMS_RH_TRADE_URL: ${{ secrets.RTMS_RH_TRADE_URL }}
+          RTMS_SH_TRADE_URL: ${{ secrets.RTMS_SH_TRADE_URL }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: ${{ vars.GROQ_MODEL || 'llama-3.3-70b-versatile' }}
+          GEMINI_FALLBACK_ENABLED: ${{ vars.GEMINI_FALLBACK_ENABLED || 'false' }}
+          PROPERTY_TYPE: ${{ vars.PROPERTY_TYPE }}
+        run: |
+          output_path="${RUNNER_TEMP}/houseviewing-production.env"
+          python3 - "${output_path}" <<'PY'
+          import json
+          import os
+          import pathlib
+          import sys
+
+          keys = (
+              "GHCR_NAMESPACE",
+              "GHCR_REPOSITORY",
+              "IMAGE_TAG",
+              "MYSQL_ROOT_PASSWORD",
+              "MYSQL_DATABASE",
+              "MYSQL_USER",
+              "MYSQL_PASSWORD",
+              "KAKAO_REST_API_KEY",
+              "AWS_ACCESS_KEY",
+              "AWS_SECRET_KEY",
+              "AWS_REGION",
+              "AWS_S3_BUCKET",
+              "JWT_SECRET",
+              "API_URL",
+              "SECRET_KEY",
+              "RTMS_SERVICE_KEY",
+              "RTMS_RH_TRADE_URL",
+              "RTMS_SH_TRADE_URL",
+              "GROQ_API_KEY",
+              "GROQ_MODEL",
+              "GEMINI_FALLBACK_ENABLED",
+              "PROPERTY_TYPE",
+          )
+
+          destination = pathlib.Path(sys.argv[1])
+          lines = []
+          for key in keys:
+              value = os.environ.get(key, "")
+              if "\n" in value or "\r" in value:
+                  raise ValueError(f"{key} must not contain a newline")
+              lines.append(f"{key}={json.dumps(value.replace('$', '$$'))}")
+
+          destination.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
+          chmod 600 "${output_path}"
+          echo "path=${output_path}" >> "${GITHUB_OUTPUT}"
+
+      - name: Copy deployment files
+        shell: bash
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          ENV_FILE: ${{ steps.production-env.outputs.path }}
+        run: |
+          ssh -i "${HOME}/.ssh/deploy_key" \
+            "${EC2_USER}@${EC2_HOST}" \
+            "mkdir -p '${DEPLOY_PATH}/scripts'"
+
+          scp -i "${HOME}/.ssh/deploy_key" \
+            docker-compose.prod.yml \
+            "${EC2_USER}@${EC2_HOST}:${DEPLOY_PATH}/docker-compose.prod.yml"
+
+          scp -i "${HOME}/.ssh/deploy_key" \
+            scripts/deploy-ec2.sh \
+            "${EC2_USER}@${EC2_HOST}:${DEPLOY_PATH}/scripts/deploy-ec2.sh"
+
+          scp -i "${HOME}/.ssh/deploy_key" \
+            "${ENV_FILE}" \
+            "${EC2_USER}@${EC2_HOST}:${DEPLOY_PATH}/.env.next"
+
+          ssh -i "${HOME}/.ssh/deploy_key" \
+            "${EC2_USER}@${EC2_HOST}" \
+            "mv '${DEPLOY_PATH}/.env.next' '${DEPLOY_PATH}/.env' && chmod 600 '${DEPLOY_PATH}/.env'"
+
+      - name: Log EC2 in to GHCR
+        shell: bash
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
+        run: |
+          printf '%s' "${GHCR_READ_TOKEN}" \
+            | ssh -i "${HOME}/.ssh/deploy_key" \
+                "${EC2_USER}@${EC2_HOST}" \
+                "docker login ghcr.io --username '${GHCR_USERNAME}' --password-stdin"
+
+      - name: Deploy and verify health
+        shell: bash
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          ssh -i "${HOME}/.ssh/deploy_key" \
+            "${EC2_USER}@${EC2_HOST}" \
+            "bash '${DEPLOY_PATH}/scripts/deploy-ec2.sh' '${DEPLOY_PATH}'"
