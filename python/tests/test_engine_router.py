@@ -32,7 +32,7 @@ def _ai_patch():
         "recovery_comment": "테스트 회수 코멘트",
         "action_items": ["즉시 전문가 상담"],
     }
-    return patch("groq_client.generate_analysis_content", return_value=mock_content)
+    return patch("core.groq_client.generate_analysis_content", return_value=mock_content)
 
 
 # ── /health ─────────────────────────────────────────────────────────────────
@@ -53,7 +53,7 @@ class TestGeneratePdfPre:
     """계약전: deposit 없음 → 위험 분석 PDF"""
 
     def test_200_반환(self):
-        with _pdf_patch():
+        with _pdf_patch(), _ai_patch():
             res = client.post("/engine/generate-pdf", json={
                 "snapshotName": "에덴하우스 105호",
                 "rawData": RAW_HIGH_STR,
@@ -61,7 +61,7 @@ class TestGeneratePdfPre:
         assert res.status_code == 200
 
     def test_content_type_pdf(self):
-        with _pdf_patch():
+        with _pdf_patch(), _ai_patch():
             res = client.post("/engine/generate-pdf", json={
                 "snapshotName": "에덴하우스 105호",
                 "rawData": RAW_HIGH_STR,
@@ -69,7 +69,7 @@ class TestGeneratePdfPre:
         assert "application/pdf" in res.headers["content-type"]
 
     def test_pdf_바이너리_반환(self):
-        with _pdf_patch():
+        with _pdf_patch(), _ai_patch():
             res = client.post("/engine/generate-pdf", json={
                 "snapshotName": "에덴하우스 105호",
                 "rawData": RAW_HIGH_STR,
@@ -92,7 +92,7 @@ class TestGeneratePdfPre:
         assert "snapshotName" in res.json()["message"]
 
     def test_LOW_위험도_정상처리(self):
-        with _pdf_patch():
+        with _pdf_patch(), _ai_patch():
             res = client.post("/engine/generate-pdf", json={
                 "snapshotName": "안전 매물",
                 "rawData": RAW_LOW_STR,

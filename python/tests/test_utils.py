@@ -1,5 +1,7 @@
 """utils.py 및 HTML 생성기 단위 테스트"""
 import pytest
+from unittest.mock import patch
+
 from core.utils import fmt_krw, build_signals_html, build_guidelines_html
 
 
@@ -112,7 +114,14 @@ class TestHtmlGenerators:
             checklist=["전문가 상담"],
             signals=[{"severity": "HIGH", "explain": "위험"}],
         )
-        html = generate_html_report(data)
+        ai_content = {
+            "risk_headline": "테스트 헤드라인",
+            "main_analysis": "테스트 분석 내용",
+            "recovery_comment": "테스트 회수 코멘트",
+            "action_items": ["전문가 상담"],
+        }
+        with patch("core.groq_client.generate_analysis_content", return_value=ai_content):
+            html = generate_html_report(data)
         assert "<!DOCTYPE html>" in html
         assert "홍길동" in html
         assert "대응 가이드라인" in html

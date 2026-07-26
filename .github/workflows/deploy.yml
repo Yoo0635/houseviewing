@@ -80,7 +80,6 @@ jobs:
       API_URL: https://example.invalid/ocr
       SECRET_KEY: cd-ocr-secret
       RTMS_SERVICE_KEY: cd-public-data-key
-      GROQ_API_KEY: cd-groq-key
       GEMINI_FALLBACK_ENABLED: "false"
     steps:
       - name: Check out repository
