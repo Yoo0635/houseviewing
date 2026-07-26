@@ -156,7 +156,7 @@ The EC2 host uses `GHCR_READ_TOKEN` only to pull private images. Image publishin
 - Create: `scripts/deploy-ec2.sh`
 - Modify: `backend/build.gradle`
 - Modify: `backend/src/main/resources/application.yml`
-- Modify: `README.md`
+- Create: `README.md`
 
 ## Verification
 
