@@ -1,0 +1,146 @@
+name: Continuous Integration
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+  push:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend / Test and Package
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: 1234
+          MYSQL_DATABASE: house_viewing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -p1234 --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/house_viewing
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 1234
+      SPRING_DATA_REDIS_HOST: 127.0.0.1
+      SPRING_DATA_REDIS_PORT: 6379
+      JPA_DDL_AUTO: create-drop
+      JPA_SHOW_SQL: false
+      KAKAO_REST_API_KEY: ci-kakao-key
+      PYTHON_API_URL: http://127.0.0.1:8000
+      JWT_SECRET: ci-only-jwt-secret-at-least-32-characters
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Test and package backend
+        working-directory: backend
+        run: sh gradlew clean test bootJar --no-daemon
+
+      - name: Upload backend test report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-test-report
+          path: backend/build/reports/tests/test
+          if-no-files-found: ignore
+          retention-days: 7
+
+  python:
+    name: Python / Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      API_URL: https://example.invalid/ocr
+      SECRET_KEY: ci-ocr-secret
+      RTMS_SERVICE_KEY: ci-public-data-key
+      GROQ_API_KEY: ci-groq-key
+      GEMINI_FALLBACK_ENABLED: "false"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: python/requirements.txt
+
+      - name: Install Python dependencies
+        working-directory: python
+        run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt pytest
+
+      - name: Run Python tests
+        working-directory: python
+        run: python -m pytest tests -q
+
+  android:
+    name: Android / Test and APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Test and build debug APK
+        working-directory: app
+        run: sh gradlew testDebugUnitTest assembleDebug --no-daemon
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: houseviewing-debug-apk
+          path: app/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7

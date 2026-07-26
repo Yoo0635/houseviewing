@@ -220,7 +220,7 @@ Upload `app/app/build/outputs/apk/debug/app-debug.apk` with `actions/upload-arti
 Run:
 
 ```bash
-ruby -e 'require "yaml"; YAML.load_file(".github/workflows/ci.yml", aliases: true)'
+ruby -e 'require "yaml"; YAML.load_file(".github/workflows/ci.yml")'
 ```
 
 Expected: exit 0.
