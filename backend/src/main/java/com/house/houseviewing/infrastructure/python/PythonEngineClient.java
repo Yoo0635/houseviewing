@@ -19,6 +19,8 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.util.concurrent.TimeoutException;
+
 @Component
 public class PythonEngineClient {
 
@@ -75,7 +77,18 @@ public class PythonEngineClient {
                     return response.bodyToMono(String.class)
                             .defaultIfEmpty("")
                             .flatMap(body -> Mono.error(toPdfException(response.statusCode(), body)));
-                });
+                })
+                .onErrorMap(this::toPdfTransportException);
+    }
+
+    private RuntimeException toPdfTransportException(Throwable throwable) {
+        if (throwable instanceof AppException appException) {
+            return appException;
+        }
+        if (throwable instanceof TimeoutException) {
+            return new AppException(ExceptionCode.PDF_GENERATION_FAILED, throwable.getMessage());
+        }
+        return new AppException(ExceptionCode.PDF_GENERATION_FAILED, throwable.getMessage());
     }
 
     private RuntimeException toPdfException(HttpStatusCode statusCode, String body) {

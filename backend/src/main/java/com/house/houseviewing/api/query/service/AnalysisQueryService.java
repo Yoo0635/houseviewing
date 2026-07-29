@@ -8,6 +8,7 @@ import com.house.houseviewing.domain.analysis.preanalysis.entity.PreAnalysisEnti
 import com.house.houseviewing.domain.analysis.preanalysis.service.PreAnalysisService;
 import com.house.houseviewing.domain.analysis.preanalysis.dto.request.PreContractDiagnosisRequest;
 import com.house.houseviewing.domain.report.postreport.entity.PostReportEntity;
+import com.house.houseviewing.domain.report.postreport.service.PostReportRetryService;
 import com.house.houseviewing.domain.report.postreport.service.PostReportService;
 import com.house.houseviewing.domain.report.prereport.entity.PreReportEntity;
 import com.house.houseviewing.domain.report.prereport.service.PreReportService;
@@ -27,6 +28,7 @@ public class AnalysisQueryService {
     private final PostAnalysisService postAnalysisService;
     private final PreAnalysisService preAnalysisService;
     private final PostReportService postReportService;
+    private final PostReportRetryService postReportRetryService;
     private final PreReportService preReportService;
 
     public PostContractDiagnosisResponse executePostContractDiagnosis(Long houseId, MultipartFile snapshot){
@@ -36,6 +38,7 @@ public class AnalysisQueryService {
             PostReportEntity pdfReport = postReportService.postRegister(analyze);
             return PostContractDiagnosisResponse.success(analyze, pdfReport);
         } catch (AppException e) {
+            postReportRetryService.enqueue(analyze, e);
             return PostContractDiagnosisResponse.pdfFailed(analyze, e);
         }
     }

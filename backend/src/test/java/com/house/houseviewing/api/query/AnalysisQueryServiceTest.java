@@ -10,6 +10,7 @@ import com.house.houseviewing.domain.analysis.preanalysis.entity.PreAnalysisEnti
 import com.house.houseviewing.domain.analysis.preanalysis.service.PreAnalysisService;
 import com.house.houseviewing.domain.analysis.preanalysis.dto.request.PreContractDiagnosisRequest;
 import com.house.houseviewing.domain.report.postreport.entity.PostReportEntity;
+import com.house.houseviewing.domain.report.postreport.service.PostReportRetryService;
 import com.house.houseviewing.domain.report.postreport.service.PostReportService;
 import com.house.houseviewing.domain.report.prereport.entity.PreReportEntity;
 import com.house.houseviewing.domain.report.prereport.service.PreReportService;
@@ -44,6 +45,7 @@ class AnalysisQueryServiceTest {
     @Mock PostAnalysisService postAnalysisService;
     @Mock PreAnalysisService preAnalysisService;
     @Mock PostReportService postReportService;
+    @Mock PostReportRetryService postReportRetryService;
     @Mock PreReportService preReportService;
 
     @Nested
@@ -100,6 +102,7 @@ class AnalysisQueryServiceTest {
             assertThat(result.getPdfStatus()).isEqualTo(PdfGenerationStatus.FAILED);
             assertThat(result.getPdfErrorCode()).isEqualTo(ExceptionCode.INVALID_PDF_REQUEST.getCode());
             assertThat(result.getPdfErrorMessage()).contains("contractType");
+            verify(postReportRetryService).enqueue(eq(analysis), any(AppException.class));
         }
     }
 
