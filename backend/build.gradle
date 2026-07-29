@@ -1,5 +1,6 @@
 plugins {
 	id 'java'
+	id 'jacoco'
 	id 'org.springframework.boot' version '3.5.10'
 	id 'io.spring.dependency-management' version '1.1.7'
 }
@@ -57,4 +58,29 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	finalizedBy jacocoTestReport
+}
+
+jacoco {
+	toolVersion = '0.8.12'
+}
+
+jacocoTestReport {
+	dependsOn test
+	reports {
+		xml.required = true
+		html.required = true
+	}
+	classDirectories.setFrom(files(classDirectories.files.collect {
+		fileTree(dir: it, include: [
+				'com/house/houseviewing/api/query/service/AnalysisQueryService.class',
+				'com/house/houseviewing/api/query/service/DiffAnalysisQueryService.class',
+				'com/house/houseviewing/domain/analysis/postanalysis/service/PostAnalysisService.class',
+				'com/house/houseviewing/domain/analysis/preanalysis/service/PreAnalysisService.class',
+				'com/house/houseviewing/domain/report/postreport/service/PostReportService.class',
+				'com/house/houseviewing/domain/report/postreport/service/PostReportRetryService.class',
+				'com/house/houseviewing/domain/report/prereport/service/PreReportService.class',
+				'com/house/houseviewing/infrastructure/python/PythonEngineClient.class'
+		])
+	}))
 }
