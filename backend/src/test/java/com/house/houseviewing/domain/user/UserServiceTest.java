@@ -57,13 +57,13 @@ class UserServiceTest {
                     .willReturn(false);
             given(passwordEncoder.encode(anyString()))
                     .willReturn("encoded");
-            given(userRepository.save(any(UserEntity.class)))
+            given(userRepository.saveAndFlush(any(UserEntity.class)))
                     .willReturn(build);
             given(stringRedisTemplate.opsForValue()).willReturn(valueOperations);
 
             userService.register(build1);
 
-            then(userRepository).should(times(1)).save(any(UserEntity.class));
+            then(userRepository).should(times(1)).saveAndFlush(any(UserEntity.class));
         }
 
         @Test

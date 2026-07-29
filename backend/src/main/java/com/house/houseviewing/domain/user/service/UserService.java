@@ -43,7 +43,7 @@ public class UserService {
             SubscriptionEntity subscription = defaultSubscription();
 
             user.addSubscription(subscription);
-            userRepository.save(user);
+            userRepository.saveAndFlush(user);
         } catch (DataIntegrityViolationException e){
             throw new AppException(ExceptionCode.DUPLICATE_RESOURCE);
         }
