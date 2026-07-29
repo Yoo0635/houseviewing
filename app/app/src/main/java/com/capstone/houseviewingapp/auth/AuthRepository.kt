@@ -18,9 +18,9 @@ interface AuthRepository {
     suspend fun register(request: RegisterRequest): Result<Unit>
     suspend fun isLoginIdAvailable(loginId: String): Result<Boolean>
     suspend fun isEmailAvailable(email: String): Result<Boolean>
-    suspend fun login(request: LoginRequest): Result<LoginResponse>
-    suspend fun logout(accessToken: String): Result<Unit>
-    suspend fun reissue(request: ReissueRequest): Result<ReissueResponse>
+    suspend fun login(request: LoginRequest, deviceId: String): Result<LoginResponse>
+    suspend fun logout(accessToken: String, deviceId: String): Result<Unit>
+    suspend fun reissue(request: ReissueRequest, deviceId: String): Result<ReissueResponse>
     suspend fun findId(request: FindIdRequest): Result<FindIdResponse>
     /** 백엔드 POST /users/password/verify — 응답 본문이 재설정용 토큰 문자열 */
     suspend fun verifyPassword(request: VerifyPasswordRequest): Result<String>

@@ -11,11 +11,20 @@ import retrofit2.http.POST
 
 interface AuthApi {
     @POST("auth/login")
-    fun login(@Body body: LoginRequest): Call<LoginResponse>
+    fun login(
+        @Header("X-Device-Id") deviceId: String,
+        @Body body: LoginRequest
+    ): Call<LoginResponse>
 
     @POST("auth/reissue")
-    fun reissue(@Body body: ReissueRequest): Call<ReissueResponse>
+    fun reissue(
+        @Header("X-Device-Id") deviceId: String,
+        @Body body: ReissueRequest
+    ): Call<ReissueResponse>
 
     @POST("auth/logout")
-    fun logout(@Header("Authorization") authorization: String): Call<Void>
+    fun logout(
+        @Header("Authorization") authorization: String,
+        @Header("X-Device-Id") deviceId: String
+    ): Call<Void>
 }

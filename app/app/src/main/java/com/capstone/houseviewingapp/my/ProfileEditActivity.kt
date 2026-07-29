@@ -45,7 +45,8 @@ class ProfileEditActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val accessToken = AuthTokenLocalStore.getAccessToken(this@ProfileEditActivity)
             if (!accessToken.isNullOrBlank()) {
-                AuthRepositoryProvider.repository.logout(accessToken)
+                val deviceId = AuthTokenLocalStore.getOrCreateDeviceId(this@ProfileEditActivity)
+                AuthRepositoryProvider.repository.logout(accessToken, deviceId)
             }
             AuthTokenLocalStore.clear(this@ProfileEditActivity)
             UserProfileLocalStore.clear(this@ProfileEditActivity)

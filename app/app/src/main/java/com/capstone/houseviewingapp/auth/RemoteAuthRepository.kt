@@ -53,8 +53,8 @@ class RemoteAuthRepository(
     override suspend fun isEmailAvailable(email: String): Result<Boolean> =
         Result.success(true)
 
-    override suspend fun login(request: LoginRequest): Result<LoginResponse> {
-        val result = authApi.login(request).executeApi()
+    override suspend fun login(request: LoginRequest, deviceId: String): Result<LoginResponse> {
+        val result = authApi.login(deviceId, request).executeApi()
         return result.fold(
             onSuccess = { Result.success(it) },
             onFailure = { Result.failure(mapLoginException(it)) }
@@ -69,16 +69,16 @@ class RemoteAuthRepository(
         }
     }
 
-    override suspend fun logout(accessToken: String): Result<Unit> {
-        val result = authApi.logout(bearer(accessToken)).executeApiVoid()
+    override suspend fun logout(accessToken: String, deviceId: String): Result<Unit> {
+        val result = authApi.logout(bearer(accessToken), deviceId).executeApiVoid()
         return result.fold(
             onSuccess = { Result.success(Unit) },
             onFailure = { Result.failure(it) }
         )
     }
 
-    override suspend fun reissue(request: ReissueRequest): Result<ReissueResponse> {
-        val result = authApi.reissue(request).executeApi()
+    override suspend fun reissue(request: ReissueRequest, deviceId: String): Result<ReissueResponse> {
+        val result = authApi.reissue(deviceId, request).executeApi()
         return result.fold(
             onSuccess = { Result.success(it) },
             onFailure = { Result.failure(it) }

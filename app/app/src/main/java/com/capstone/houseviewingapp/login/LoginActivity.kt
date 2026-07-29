@@ -96,7 +96,8 @@ class LoginActivity : AppCompatActivity() {
                 password = binding.passwordEditText.text?.toString().orEmpty()
             )
             lifecycleScope.launch {
-                val result = AuthRepositoryProvider.repository.login(request)
+                val deviceId = AuthTokenLocalStore.getOrCreateDeviceId(this@LoginActivity)
+                val result = AuthRepositoryProvider.repository.login(request, deviceId)
                 val token = result.getOrElse {
                     val remote = it as? RemoteApiException
                     val msg = when (remote?.code) {

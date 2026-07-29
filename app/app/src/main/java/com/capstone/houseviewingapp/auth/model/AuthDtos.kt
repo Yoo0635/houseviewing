@@ -54,7 +54,8 @@ data class ReissueRequest(
 )
 
 data class ReissueResponse(
-    val accessToken: String
+    val accessToken: String,
+    val refreshToken: String
 )
 
 data class SubscriptionMeResponse(
