@@ -1,5 +1,6 @@
 package com.house.houseviewing.domain.user.service;
 
+import com.house.houseviewing.domain.auth.service.RefreshTokenService;
 import com.house.houseviewing.domain.subscription.entity.SubscriptionEntity;
 import com.house.houseviewing.domain.subscription.enums.PlanType;
 import com.house.houseviewing.domain.user.dto.response.UserFindIdResponse;
@@ -32,6 +33,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final StringRedisTemplate stringRedisTemplate;
+    private final RefreshTokenService refreshTokenService;
 
     @Transactional
     public void register(UserRegisterRequest request){
@@ -88,6 +90,7 @@ public class UserService {
         String encode = passwordEncoder.encode(request.getNewPassword());
         user.updatePassword(encode);
         stringRedisTemplate.delete(key);
+        refreshTokenService.revokeAllUserSessions(user.getId());
     }
 
     @Transactional
@@ -96,6 +99,7 @@ public class UserService {
                 .orElseThrow(() -> new AppException(ExceptionCode.USER_NOT_FOUND));
 
         userRepository.delete(user);
+        refreshTokenService.revokeAllUserSessions(userId);
     }
 
     private void duplicateUser(UserRegisterRequest request) {

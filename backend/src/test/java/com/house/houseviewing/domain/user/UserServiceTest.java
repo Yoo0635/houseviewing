@@ -1,5 +1,6 @@
 package com.house.houseviewing.domain.user;
 
+import com.house.houseviewing.domain.auth.service.RefreshTokenService;
 import com.house.houseviewing.domain.user.dto.request.UserFindIdRequest;
 import com.house.houseviewing.domain.user.dto.request.UserResetPasswordRequest;
 import com.house.houseviewing.domain.user.dto.request.UserVerifyPasswordRequest;
@@ -41,6 +42,7 @@ class UserServiceTest {
     @Mock PasswordEncoder passwordEncoder;
     @Mock StringRedisTemplate stringRedisTemplate;
     @Mock ValueOperations<String, String> valueOperations;
+    @Mock RefreshTokenService refreshTokenService;
 
     @Nested
     @DisplayName("회원가입")
@@ -106,7 +108,7 @@ class UserServiceTest {
         @Test
         @DisplayName("성공")
         void 성공(){
-            UserEntity user = UserFixture.createDefault().build();
+            UserEntity user = UserFixture.createDefaultWithId(1L);
             UserFindIdRequest request = UserFixture.createFindId(user).build();
             given(userRepository.findByEmailAndName(anyString(), anyString()))
                     .willReturn(Optional.of(user));
@@ -182,6 +184,7 @@ class UserServiceTest {
             userService.passwordReset(request);
 
             then(stringRedisTemplate).should().delete("PW_RESET_ALLOWED:reset-token");
+            then(refreshTokenService).should().revokeAllUserSessions(user.getId());
             assertThat(user.getPassword()).isEqualTo("encoded-new-password");
         }
     }
@@ -201,6 +204,7 @@ class UserServiceTest {
             userService.delete(userId);
 
             then(userRepository).should(times(1)).delete(user);
+            then(refreshTokenService).should().revokeAllUserSessions(userId);
         }
 
         @Test
