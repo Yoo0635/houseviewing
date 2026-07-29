@@ -27,6 +27,7 @@ public enum ExceptionCode {
     FREE_DIAGNOSIS_ALREADY_USED("AU005", HttpStatus.FORBIDDEN, "이미 무료 진단을 사용하셨습니다. 결제를 진행해주세요"),
     INVALID_HEADER("AU005", HttpStatus.UNAUTHORIZED, "올바른 Authorization 헤더가 아닙니다."),
     PASSWORD_RESET_NOT_ALLOWED("AU006", HttpStatus.FORBIDDEN, "비밀번호 재설정 권한이 없습니다."),
+    TOKEN_REUSE_DETECTED("AU007", HttpStatus.UNAUTHORIZED, "이미 사용된 토큰입니다. 다시 로그인해주세요."),
 
     // VP
     FIND_LOGIN_ID_FAILED("VP001",HttpStatus.BAD_REQUEST, "이메일 또는 아이디가 틀렸습니다."),

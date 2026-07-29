@@ -8,7 +8,6 @@ import com.house.houseviewing.domain.auth.jwt.JwtTokenProvider;
 import com.house.houseviewing.domain.auth.model.CustomUserDetails;
 import com.house.houseviewing.domain.auth.service.AuthService;
 import com.house.houseviewing.domain.auth.service.RefreshTokenService;
-import com.house.houseviewing.domain.auth.service.TokenBlacklistService;
 import com.house.houseviewing.domain.user.entity.UserEntity;
 import com.house.houseviewing.fixture.AuthFixture;
 import com.house.houseviewing.fixture.UserFixture;
@@ -38,7 +37,6 @@ class AuthServiceTest {
     @Mock JwtTokenProvider jwtTokenProvider;
     @Mock RefreshTokenService refreshTokenService;
     @Mock AuthenticationManager authenticationManager;
-    @Mock TokenBlacklistService tokenBlacklistService;
 
     @Nested
     @DisplayName("로그인")
@@ -55,17 +53,26 @@ class AuthServiceTest {
             given(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                     .willReturn(authentication);
             given(authentication.getPrincipal()).willReturn(userDetails);
-            given(jwtTokenProvider.createAccessToken(anyLong(), anyString())).willReturn("access-token");
-            given(jwtTokenProvider.createRefreshToken(anyLong(), anyString())).willReturn("refresh-token");
+            given(refreshTokenService.hashDeviceId("device-1")).willReturn("device-hash-1");
+            given(jwtTokenProvider.createAccessToken(anyLong(), anyString(), anyString())).willReturn("access-token");
+            given(jwtTokenProvider.createRefreshToken(anyLong(), anyString(), anyString(), anyString())).willReturn("refresh-token");
+            given(jwtTokenProvider.getTokenId("refresh-token")).willReturn("refresh-jti-1");
             given(jwtTokenProvider.getRefreshTokenExpiration()).willReturn(604800000L);
 
-            LoginResponse result = authService.login(request);
+            LoginResponse result = authService.login(request, "device-1");
 
             assertThat(result).isNotNull();
             assertThat(result.getAccessToken()).isEqualTo("access-token");
             assertThat(result.getRefreshToken()).isEqualTo("refresh-token");
             assertThat(result.getUserId()).isEqualTo(1L);
-            verify(refreshTokenService).saveRefreshToken(anyLong(), eq("refresh-token"), anyLong());
+            verify(refreshTokenService).replaceSession(
+                    eq(1L),
+                    eq("device-hash-1"),
+                    anyString(),
+                    eq("refresh-token"),
+                    eq("refresh-jti-1"),
+                    eq(604800000L)
+            );
         }
     }
 
@@ -78,48 +85,87 @@ class AuthServiceTest {
         void 성공(){
             ReissueRequest request = AuthFixture.createReissueRequest("refresh-token").build();
 
-            given(jwtTokenProvider.validateToken(anyString())).willReturn(true);
-            given(jwtTokenProvider.getUserId(anyString())).willReturn(1L);
-            given(jwtTokenProvider.getLoginId(anyString())).willReturn("yooyoo9191");
-            given(refreshTokenService.getRefreshToken(anyLong())).willReturn("refresh-token");
-            given(jwtTokenProvider.createAccessToken(anyLong(), anyString())).willReturn("new-access-token");
+            given(jwtTokenProvider.validateRefreshToken("refresh-token")).willReturn(true);
+            given(jwtTokenProvider.getUserId("refresh-token")).willReturn(1L);
+            given(jwtTokenProvider.getLoginId("refresh-token")).willReturn("yooyoo9191");
+            given(jwtTokenProvider.getSessionId("refresh-token")).willReturn("session-1");
+            given(jwtTokenProvider.getDeviceIdHash("refresh-token")).willReturn("device-hash-1");
+            given(jwtTokenProvider.getTokenId("refresh-token")).willReturn("old-jti");
+            given(jwtTokenProvider.getRemainingTime("refresh-token")).willReturn(604000000L);
+            given(refreshTokenService.hashDeviceId("device-1")).willReturn("device-hash-1");
+            given(jwtTokenProvider.createAccessToken(1L, "yooyoo9191", "session-1")).willReturn("new-access-token");
+            given(jwtTokenProvider.createRefreshToken(1L, "yooyoo9191", "session-1", "device-hash-1")).willReturn("new-refresh-token");
+            given(jwtTokenProvider.getTokenId("new-refresh-token")).willReturn("new-jti");
+            given(jwtTokenProvider.getRefreshTokenExpiration()).willReturn(604800000L);
+            given(refreshTokenService.rotateRefreshToken(
+                    eq(1L),
+                    eq("device-hash-1"),
+                    eq("session-1"),
+                    eq("old-jti"),
+                    eq("refresh-token"),
+                    eq("new-jti"),
+                    eq("new-refresh-token"),
+                    eq(604800000L),
+                    eq(604000000L)
+            )).willReturn(RefreshTokenService.RotationResult.SUCCESS);
 
-            ReissueResponse result = authService.reissue(request);
+            ReissueResponse result = authService.reissue(request, "device-1");
 
             assertThat(result).isNotNull();
             assertThat(result.getAccessToken()).isEqualTo("new-access-token");
+            assertThat(result.getRefreshToken()).isEqualTo("new-refresh-token");
         }
 
         @Test
-        @DisplayName("실패: 저장된 토큰과 불일치")
-        void 토큰_불일치(){
-            ReissueRequest request = AuthFixture.createReissueRequest("wrong-token").build();
-
-            given(jwtTokenProvider.validateToken(anyString())).willReturn(true);
-            given(jwtTokenProvider.getUserId(anyString())).willReturn(1L);
-            given(jwtTokenProvider.getLoginId(anyString())).willReturn("yooyoo9191");
-            given(refreshTokenService.getRefreshToken(anyLong())).willReturn("different-token");
-
-            assertThatThrownBy(() -> authService.reissue(request))
-                    .isInstanceOf(AppException.class)
-                    .extracting("exceptionCode")
-                    .isEqualTo(ExceptionCode.INVALID_TOKEN);
-        }
-
-        @Test
-        @DisplayName("실패: 저장된 토큰이 없음")
-        void 토큰_없음(){
+        @DisplayName("실패: 저장된 세션이 없음")
+        void 세션_없음(){
             ReissueRequest request = AuthFixture.createReissueRequest("refresh-token").build();
 
-            given(jwtTokenProvider.validateToken(anyString())).willReturn(true);
-            given(jwtTokenProvider.getUserId(anyString())).willReturn(1L);
-            given(jwtTokenProvider.getLoginId(anyString())).willReturn("yooyoo9191");
-            given(refreshTokenService.getRefreshToken(anyLong())).willReturn(null);
+            given(jwtTokenProvider.validateRefreshToken("refresh-token")).willReturn(true);
+            given(jwtTokenProvider.getUserId("refresh-token")).willReturn(1L);
+            given(jwtTokenProvider.getLoginId("refresh-token")).willReturn("yooyoo9191");
+            given(jwtTokenProvider.getSessionId("refresh-token")).willReturn("session-1");
+            given(jwtTokenProvider.getDeviceIdHash("refresh-token")).willReturn("device-hash-1");
+            given(jwtTokenProvider.getTokenId("refresh-token")).willReturn("old-jti");
+            given(jwtTokenProvider.getRemainingTime("refresh-token")).willReturn(604000000L);
+            given(refreshTokenService.hashDeviceId("device-1")).willReturn("device-hash-1");
+            given(jwtTokenProvider.createAccessToken(1L, "yooyoo9191", "session-1")).willReturn("new-access-token");
+            given(jwtTokenProvider.createRefreshToken(1L, "yooyoo9191", "session-1", "device-hash-1")).willReturn("new-refresh-token");
+            given(jwtTokenProvider.getTokenId("new-refresh-token")).willReturn("new-jti");
+            given(jwtTokenProvider.getRefreshTokenExpiration()).willReturn(604800000L);
+            given(refreshTokenService.rotateRefreshToken(anyLong(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyLong(), anyLong()))
+                    .willReturn(RefreshTokenService.RotationResult.INVALID);
 
-            assertThatThrownBy(() -> authService.reissue(request))
+            assertThatThrownBy(() -> authService.reissue(request, "device-1"))
                     .isInstanceOf(AppException.class)
                     .extracting("exceptionCode")
                     .isEqualTo(ExceptionCode.INVALID_TOKEN);
+        }
+
+        @Test
+        @DisplayName("실패: 사용 완료된 Refresh Token 재사용")
+        void 사용_완료된_토큰_재사용(){
+            ReissueRequest request = AuthFixture.createReissueRequest("refresh-token").build();
+
+            given(jwtTokenProvider.validateRefreshToken("refresh-token")).willReturn(true);
+            given(jwtTokenProvider.getUserId("refresh-token")).willReturn(1L);
+            given(jwtTokenProvider.getLoginId("refresh-token")).willReturn("yooyoo9191");
+            given(jwtTokenProvider.getSessionId("refresh-token")).willReturn("session-1");
+            given(jwtTokenProvider.getDeviceIdHash("refresh-token")).willReturn("device-hash-1");
+            given(jwtTokenProvider.getTokenId("refresh-token")).willReturn("old-jti");
+            given(jwtTokenProvider.getRemainingTime("refresh-token")).willReturn(604000000L);
+            given(refreshTokenService.hashDeviceId("device-1")).willReturn("device-hash-1");
+            given(jwtTokenProvider.createAccessToken(1L, "yooyoo9191", "session-1")).willReturn("new-access-token");
+            given(jwtTokenProvider.createRefreshToken(1L, "yooyoo9191", "session-1", "device-hash-1")).willReturn("new-refresh-token");
+            given(jwtTokenProvider.getTokenId("new-refresh-token")).willReturn("new-jti");
+            given(jwtTokenProvider.getRefreshTokenExpiration()).willReturn(604800000L);
+            given(refreshTokenService.rotateRefreshToken(anyLong(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyLong(), anyLong()))
+                    .willReturn(RefreshTokenService.RotationResult.REUSED);
+
+            assertThatThrownBy(() -> authService.reissue(request, "device-1"))
+                    .isInstanceOf(AppException.class)
+                    .extracting("exceptionCode")
+                    .isEqualTo(ExceptionCode.TOKEN_REUSE_DETECTED);
         }
     }
 
@@ -132,13 +178,13 @@ class AuthServiceTest {
         void 성공(){
             String header = "Bearer access-token";
 
-            given(jwtTokenProvider.getRemainingTime(anyString())).willReturn(3600000L);
             given(jwtTokenProvider.getUserId(anyString())).willReturn(1L);
+            given(jwtTokenProvider.getSessionId("access-token")).willReturn("session-1");
+            given(refreshTokenService.hashDeviceId("device-1")).willReturn("device-hash-1");
 
-            authService.logout(header);
+            authService.logout(header, "device-1");
 
-            verify(tokenBlacklistService).blacklistToken(anyString(), anyLong());
-            verify(refreshTokenService).deleteRefreshToken(anyLong());
+            verify(refreshTokenService).revokeCurrentSession(1L, "device-hash-1", "session-1");
         }
 
         @Test
@@ -146,7 +192,7 @@ class AuthServiceTest {
         void 잘못된_헤더(){
             String header = "InvalidHeader";
 
-            assertThatThrownBy(() -> authService.logout(header))
+            assertThatThrownBy(() -> authService.logout(header, "device-1"))
                     .isInstanceOf(AppException.class)
                     .extracting("exceptionCode")
                     .isEqualTo(ExceptionCode.INVALID_HEADER);
@@ -155,7 +201,7 @@ class AuthServiceTest {
         @Test
         @DisplayName("실패: null 헤더")
         void null_헤더(){
-            assertThatThrownBy(() -> authService.logout(null))
+            assertThatThrownBy(() -> authService.logout(null, "device-1"))
                     .isInstanceOf(AppException.class)
                     .extracting("exceptionCode")
                     .isEqualTo(ExceptionCode.INVALID_HEADER);
@@ -166,13 +212,13 @@ class AuthServiceTest {
         void 성공_베어러(){
             String header = "Bearer access-token";
 
-            given(jwtTokenProvider.getRemainingTime(anyString())).willReturn(3600000L);
             given(jwtTokenProvider.getUserId(anyString())).willReturn(1L);
+            given(jwtTokenProvider.getSessionId("access-token")).willReturn("session-1");
+            given(refreshTokenService.hashDeviceId("device-1")).willReturn("device-hash-1");
 
-            authService.logout(header);
+            authService.logout(header, "device-1");
 
-            verify(tokenBlacklistService).blacklistToken(anyString(), anyLong());
-            verify(refreshTokenService).deleteRefreshToken(anyLong());
+            verify(refreshTokenService).revokeCurrentSession(1L, "device-hash-1", "session-1");
         }
     }
 }

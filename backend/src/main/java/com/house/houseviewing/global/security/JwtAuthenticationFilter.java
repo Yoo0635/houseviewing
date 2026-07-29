@@ -3,6 +3,7 @@ package com.house.houseviewing.global.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.house.houseviewing.domain.auth.service.CustomUserDetailsService;
 import com.house.houseviewing.domain.auth.jwt.JwtTokenProvider;
+import com.house.houseviewing.domain.auth.service.RefreshTokenService;
 import com.house.houseviewing.domain.auth.service.TokenBlacklistService;
 import com.house.houseviewing.global.exception.ExceptionCode;
 import jakarta.servlet.FilterChain;
@@ -30,6 +31,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
     private final CustomUserDetailsService customUserDetailsService;
     private final TokenBlacklistService tokenBlacklistService;
+    private final RefreshTokenService refreshTokenService;
     private final ObjectMapper objectMapper;
 
 
@@ -50,7 +52,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     return;
                 }
 
-                jwtTokenProvider.validateToken(token);
+                jwtTokenProvider.validateAccessToken(token);
+                String sessionId = jwtTokenProvider.getSessionId(token);
+                if (sessionId == null || refreshTokenService.isSessionRevoked(sessionId)) {
+                    writeErrorResponse(response, ExceptionCode.INVALID_TOKEN);
+                    return;
+                }
                 loginId = jwtTokenProvider.getLoginId(token);
             } catch (Exception e){
                 log.error("Token validation failed: ", e);

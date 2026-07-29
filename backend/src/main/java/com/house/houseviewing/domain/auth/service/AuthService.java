@@ -14,6 +14,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -21,46 +23,87 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
     private final AuthenticationManager authenticationManager;
-    private final TokenBlacklistService tokenBlacklistService;
 
-    public LoginResponse login(LoginRequest request){
+    public LoginResponse login(LoginRequest request, String deviceId){
+        validateDeviceId(deviceId);
         Authentication authenticate = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getLoginId(),
                         request.getPassword()
                 ));
         CustomUserDetails userDetails = (CustomUserDetails) authenticate.getPrincipal();
-        String accessToken = jwtTokenProvider.createAccessToken(userDetails.getUserId(), userDetails.getUsername());
-        String refreshToken = jwtTokenProvider.createRefreshToken(userDetails.getUserId(), userDetails.getUsername());
-        refreshTokenService.saveRefreshToken(userDetails.getUserId(), refreshToken, jwtTokenProvider.getRefreshTokenExpiration());
+        String deviceIdHash = refreshTokenService.hashDeviceId(deviceId);
+        String sessionId = UUID.randomUUID().toString();
+        String accessToken = jwtTokenProvider.createAccessToken(userDetails.getUserId(), userDetails.getUsername(), sessionId);
+        String refreshToken = jwtTokenProvider.createRefreshToken(userDetails.getUserId(), userDetails.getUsername(), sessionId, deviceIdHash);
+        String refreshJti = jwtTokenProvider.getTokenId(refreshToken);
+        refreshTokenService.replaceSession(
+                userDetails.getUserId(),
+                deviceIdHash,
+                sessionId,
+                refreshToken,
+                refreshJti,
+                jwtTokenProvider.getRefreshTokenExpiration()
+        );
 
         return LoginResponse.from(userDetails, accessToken, refreshToken);
     }
 
-    public ReissueResponse reissue(ReissueRequest request){
+    public ReissueResponse reissue(ReissueRequest request, String deviceId){
+        validateDeviceId(deviceId);
         String refreshToken = request.getRefreshToken();
 
-        jwtTokenProvider.validateToken(refreshToken);
+        jwtTokenProvider.validateRefreshToken(refreshToken);
 
         Long userId = jwtTokenProvider.getUserId(refreshToken);
         String loginId = jwtTokenProvider.getLoginId(refreshToken);
+        String sessionId = jwtTokenProvider.getSessionId(refreshToken);
+        String deviceIdHash = refreshTokenService.hashDeviceId(deviceId);
+        String tokenDeviceIdHash = jwtTokenProvider.getDeviceIdHash(refreshToken);
+        String oldJti = jwtTokenProvider.getTokenId(refreshToken);
+        long oldRemainingTime = jwtTokenProvider.getRemainingTime(refreshToken);
 
-        String savedRefreshToken = refreshTokenService.getRefreshToken(userId);
-
-        if(savedRefreshToken == null || !savedRefreshToken.equals(refreshToken)){
+        if (sessionId == null || oldJti == null || !deviceIdHash.equals(tokenDeviceIdHash)) {
             throw new AppException(ExceptionCode.INVALID_TOKEN);
         }
-        String accessToken = jwtTokenProvider.createAccessToken(userId, loginId);
-        return ReissueResponse.builder().accessToken(accessToken).build();
+
+        String accessToken = jwtTokenProvider.createAccessToken(userId, loginId, sessionId);
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(userId, loginId, sessionId, deviceIdHash);
+        String newJti = jwtTokenProvider.getTokenId(newRefreshToken);
+        RefreshTokenService.RotationResult rotationResult = refreshTokenService.rotateRefreshToken(
+                userId,
+                deviceIdHash,
+                sessionId,
+                oldJti,
+                refreshToken,
+                newJti,
+                newRefreshToken,
+                jwtTokenProvider.getRefreshTokenExpiration(),
+                oldRemainingTime
+        );
+
+        if (rotationResult == RefreshTokenService.RotationResult.REUSED) {
+            throw new AppException(ExceptionCode.TOKEN_REUSE_DETECTED);
+        }
+        if (rotationResult != RefreshTokenService.RotationResult.SUCCESS) {
+            throw new AppException(ExceptionCode.INVALID_TOKEN);
+        }
+
+        return ReissueResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(newRefreshToken)
+                .build();
     }
 
-    public void logout(String authorizationHeader){
+    public void logout(String authorizationHeader, String deviceId){
+        validateDeviceId(deviceId);
         String accessToken = extractToken(authorizationHeader);
-        Long remainingTime = jwtTokenProvider.getRemainingTime(accessToken);
+        jwtTokenProvider.validateAccessToken(accessToken);
         Long userId = jwtTokenProvider.getUserId(accessToken);
+        String sessionId = jwtTokenProvider.getSessionId(accessToken);
+        String deviceIdHash = refreshTokenService.hashDeviceId(deviceId);
 
-        tokenBlacklistService.blacklistToken(accessToken, remainingTime);
-        refreshTokenService.deleteRefreshToken(userId);
+        refreshTokenService.revokeCurrentSession(userId, deviceIdHash, sessionId);
     }
 
     private String extractToken(String authorizationHeader) {
@@ -68,5 +111,11 @@ public class AuthService {
             throw new AppException(ExceptionCode.INVALID_HEADER);
         }
         return authorizationHeader.substring(7);
+    }
+
+    private void validateDeviceId(String deviceId) {
+        if (deviceId == null || deviceId.isBlank()) {
+            throw new AppException(ExceptionCode.INVALID_HEADER);
+        }
     }
 }

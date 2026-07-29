@@ -19,20 +19,23 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request){
-        LoginResponse result = authService.login(request);
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request,
+                                               @RequestHeader("X-Device-Id") String deviceId){
+        LoginResponse result = authService.login(request, deviceId);
         return ResponseEntity.ok(result);
     }
 
     @PostMapping("/reissue")
-    public ResponseEntity<ReissueResponse> reissue(@RequestBody ReissueRequest request){
-        ReissueResponse result = authService.reissue(request);
+    public ResponseEntity<ReissueResponse> reissue(@RequestBody ReissueRequest request,
+                                                   @RequestHeader("X-Device-Id") String deviceId){
+        ReissueResponse result = authService.reissue(request, deviceId);
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@RequestHeader("Authorization") String authorizationHeader){
-        authService.logout(authorizationHeader);
+    public ResponseEntity<Void> logout(@RequestHeader("Authorization") String authorizationHeader,
+                                       @RequestHeader("X-Device-Id") String deviceId){
+        authService.logout(authorizationHeader, deviceId);
         return ResponseEntity.ok().build();
     }
 }
