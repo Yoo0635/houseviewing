@@ -48,7 +48,7 @@ logging:
 kakao:
   api:
     key: ${KAKAO_REST_API_KEY:}
-    url: https://dapi.kakao.com
+    url: ${KAKAO_API_URL:https://dapi.kakao.com}
 
 python:
   api:

@@ -11,16 +11,14 @@ import com.house.houseviewing.domain.house.dto.response.HousesResponse;
 import com.house.houseviewing.domain.house.entity.HouseEntity;
 import com.house.houseviewing.domain.analysis.postanalysis.entity.PostAnalysisEntity;
 import com.house.houseviewing.domain.analysis.postanalysis.repository.PostAnalysisRepository;
-import com.house.houseviewing.domain.user.enums.MonitoringStatus;
 import com.house.houseviewing.domain.house.dto.request.HouseRegisterRequest;
 import com.house.houseviewing.domain.house.repository.HouseRepository;
-import com.house.houseviewing.domain.user.entity.UserEntity;
-import com.house.houseviewing.domain.user.repository.UserRepository;
 import com.house.houseviewing.global.exception.AppException;
 import com.house.houseviewing.global.exception.ExceptionCode;
 import com.house.houseviewing.global.external.kakao.service.KakaoAddress;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -30,26 +28,16 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class HouseService {
 
-    private final UserRepository userRepository;
     private final HouseRepository houseRepository;
     private final KakaoAddress kakaoAddress;
+    private final HousePersistenceService housePersistenceService;
     private final ContractRepository contractRepository;
     private final PostAnalysisRepository postAnalysisRepository;
 
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public HouseRegisterResponse register(Long userId, HouseRegisterRequest request){
-
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ExceptionCode.USER_NOT_FOUND));
         Address address = kakaoAddress.parsingAddress(request.getOriginAddress());
-        HouseEntity house = request.toEntity(address, MonitoringStatus.OFFLINE);
-        if(user.isPremium()){
-            house.updateMonitoringStatus(MonitoringStatus.LIVE);
-        }
-        user.addHouse(house);
-        houseRepository.save(house);
-
-        return HouseRegisterResponse.from(house.getId());
+        return housePersistenceService.register(userId, request, address);
     }
 
     public HouseMeResponse getHouse(Long userId, Long houseId){
@@ -78,22 +66,9 @@ public class HouseService {
                 .toList();
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public HouseEditResponse editHouse(Long userId, Long houseId, HouseEditRequest request){
-        HouseEntity house = houseRepository.findByUserIdAndId(userId, houseId)
-                .orElseThrow(() -> new AppException(ExceptionCode.HOUSE_NOT_FOUND));
-        editRequest(request, house);
-
-        return HouseEditResponse.from(house);
-    }
-
-    private void editRequest(HouseEditRequest request, HouseEntity house) {
-        if(request.getNickname() != null) {
-            house.updateNickname(request.getNickname());
-        }
-        if(request.getAddress() != null) {
-            Address address = kakaoAddress.parsingAddress(request.getAddress());
-            house.updateAddress(address);
-        }
+        Address address = request.getAddress() == null ? null : kakaoAddress.parsingAddress(request.getAddress());
+        return housePersistenceService.editHouse(userId, houseId, request, address);
     }
 }
