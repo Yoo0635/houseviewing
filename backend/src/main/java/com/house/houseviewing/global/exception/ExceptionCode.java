@@ -56,7 +56,8 @@ public enum ExceptionCode {
     DUPLICATE_LOGIN_ID("DB001",HttpStatus.CONFLICT, "이미 사용 중인 아이디입니다."),
     DUPLICATE_EMAIL("DB002", HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
     DUPLICATE_RESOURCE("DB003", HttpStatus.CONFLICT, "이미 사용 중입니다."),
-    ALREADY_REGISTERED_CONTRACT("DB004", HttpStatus.CONFLICT, "이미 등록된 계약이 있습니다.");
+    ALREADY_REGISTERED_CONTRACT("DB004", HttpStatus.CONFLICT, "이미 등록된 계약이 있습니다."),
+    DIFF_DIAGNOSIS_IN_PROGRESS("DB005", HttpStatus.CONFLICT, "동일 등기 변동 진단이 이미 처리 중입니다.");
 
     private final String code;
     private final HttpStatus status;

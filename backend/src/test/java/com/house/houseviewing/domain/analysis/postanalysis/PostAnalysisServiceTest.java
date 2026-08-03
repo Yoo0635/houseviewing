@@ -174,10 +174,11 @@ class PostAnalysisServiceTest {
             given(snapshotDiffAnalysisService.diffAnalyze(anyString())).willReturn(analysis);
             given(postAnalysisRepository.save(any(PostAnalysisEntity.class))).willReturn(analysis);
 
-            PostAnalysisEntity result = postAnalysisService.diffRegister(1L, snapshot);
+            PostAnalysisEntity result = postAnalysisService.diffRegister(1L, snapshot, "snapshot-hash");
 
             assertThat(result).isNotNull();
             assertThat(result.getAnalysisType()).isEqualTo(AnalysisType.DIFF);
+            assertThat(result.getSnapshotHash()).isEqualTo("snapshot-hash");
             verify(postAnalysisRepository).save(any(PostAnalysisEntity.class));
         }
     }

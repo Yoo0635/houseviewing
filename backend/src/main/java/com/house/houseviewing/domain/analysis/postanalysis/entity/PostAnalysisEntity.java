@@ -13,7 +13,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "post_analyses")
+@Table(
+        name = "post_analyses",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_post_analysis_diff_snapshot",
+                        columnNames = {"house_id", "analysis_type", "snapshot_hash"}
+                )
+        }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PostAnalysisEntity extends BaseTimeEntity {
@@ -40,6 +48,9 @@ public class PostAnalysisEntity extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     private AnalysisType analysisType;
 
+    @Column(name = "snapshot_hash", length = 64)
+    private String snapshotHash;
+
     @Column(nullable = false, columnDefinition = "json")
     private String rawData;
 
@@ -50,10 +61,11 @@ public class PostAnalysisEntity extends BaseTimeEntity {
     private Integer ltvScore;
 
     @Builder
-    public PostAnalysisEntity(Long id, RiskLevel riskLevel, AnalysisType analysisType, String mainReason, Integer ltvScore, String rawData) {
+    public PostAnalysisEntity(Long id, RiskLevel riskLevel, AnalysisType analysisType, String snapshotHash, String mainReason, Integer ltvScore, String rawData) {
         this.id = id;
         this.riskLevel = riskLevel;
         this.analysisType = analysisType;
+        this.snapshotHash = snapshotHash;
         this.mainReason = mainReason;
         this.ltvScore = ltvScore;
         this.rawData = rawData;
@@ -68,4 +80,8 @@ public class PostAnalysisEntity extends BaseTimeEntity {
         house.addAnalysis(this);
     }
     public void addPdfReport(PostReportEntity pdfReport) {this.pdfReport = pdfReport;}
+
+    public void assignSnapshotHash(String snapshotHash) {
+        this.snapshotHash = snapshotHash;
+    }
 }
