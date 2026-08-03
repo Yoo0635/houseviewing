@@ -30,3 +30,7 @@ pdf:
   retry:
     initial-delay-ms: 1000
     polling-delay-ms: 5000
+
+performance:
+  storage:
+    stub: true

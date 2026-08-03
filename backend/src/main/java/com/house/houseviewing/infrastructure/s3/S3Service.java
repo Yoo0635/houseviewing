@@ -30,11 +30,22 @@ public class S3Service {
     @Value("${spring.cloud.aws.s3.bucket}")
     private String bucket;
 
+    @Value("${performance.storage.stub:false}")
+    private boolean storageStubEnabled;
+
     /** Presigned URL 유효 기간 (기본 7일) */
     private static final Duration PRESIGNED_DURATION = Duration.ofDays(7);
 
     public PdfUploadResult pdfUpload(byte[] pdf){
         String s3FileName = "analysis_" + UUID.randomUUID() + ".pdf";
+        if (storageStubEnabled) {
+            return PdfUploadResult.builder()
+                    .pdfKey(s3FileName)
+                    .pdfPath("https://performance.local/" + s3FileName)
+                    .pdfSizeBytes((long) pdf.length)
+                    .pdfName("안전_진단_리포트.pdf")
+                    .build();
+        }
         try{
             s3Template.upload(bucket, s3FileName, new ByteArrayInputStream(pdf),
                     ObjectMetadata.builder().contentType("application/pdf").build());
