@@ -32,6 +32,7 @@ public class SecurityConfig {
             "/users/password/reset",
             "/error",
             "/actuator/health",
+            "/actuator/prometheus",
 
             // swagger
             "/v3/api-docs/**",
