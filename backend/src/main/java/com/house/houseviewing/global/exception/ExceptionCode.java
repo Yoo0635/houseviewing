@@ -34,6 +34,7 @@ public enum ExceptionCode {
     VERIFY_PASSWORD_FAILED("VP002", HttpStatus.BAD_REQUEST, "유효하지 않은 파일입니다."),
     VERIFY_FILE_FAILED("VP003", HttpStatus.BAD_REQUEST, "유효하지 않은 파일입니다"),
     INVALID_PDF_REQUEST("VP004", HttpStatus.BAD_REQUEST, "PDF 생성 요청이 올바르지 않습니다."),
+    INVALID_IDEMPOTENCY_KEY("VP005", HttpStatus.BAD_REQUEST, "Idempotency-Key 헤더가 올바르지 않습니다."),
 
     // ER
     FILE_SAVE_FAILED("ER001", HttpStatus.BAD_REQUEST, "파일 저장에 실패했습니다."),
@@ -57,7 +58,8 @@ public enum ExceptionCode {
     DUPLICATE_EMAIL("DB002", HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
     DUPLICATE_RESOURCE("DB003", HttpStatus.CONFLICT, "이미 사용 중입니다."),
     ALREADY_REGISTERED_CONTRACT("DB004", HttpStatus.CONFLICT, "이미 등록된 계약이 있습니다."),
-    DIFF_DIAGNOSIS_IN_PROGRESS("DB005", HttpStatus.CONFLICT, "동일 등기 변동 진단이 이미 처리 중입니다.");
+    DIFF_DIAGNOSIS_IN_PROGRESS("DB005", HttpStatus.CONFLICT, "동일 등기 변동 진단이 이미 처리 중입니다."),
+    FREE_DIAGNOSIS_IN_PROGRESS("DB006", HttpStatus.CONFLICT, "무료 등기부 진단이 이미 처리 중입니다.");
 
     private final String code;
     private final HttpStatus status;
