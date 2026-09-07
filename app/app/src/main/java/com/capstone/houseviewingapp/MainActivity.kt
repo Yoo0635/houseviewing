@@ -126,6 +126,7 @@ class MainActivity : AppCompatActivity() {
             val selectedFileUri = sourceIntent.getStringExtra(com.capstone.houseviewingapp.analysis.AnalysisFlow.ARG_SELECTED_FILE_URI)
             val originAddress = sourceIntent.getStringExtra(com.capstone.houseviewingapp.analysis.AnalysisFlow.ARG_ORIGIN_ADDRESS)
             val houseId = sourceIntent.getLongExtra(com.capstone.houseviewingapp.analysis.AnalysisFlow.ARG_HOUSE_ID, -1L)
+            val freeDiagnosisRequestId = sourceIntent.getStringExtra(com.capstone.houseviewingapp.analysis.AnalysisFlow.ARG_FREE_DIAGNOSIS_REQUEST_ID)
 
             navController.navigate(
                 R.id.nav_analysis_loading,
@@ -134,7 +135,8 @@ class MainActivity : AppCompatActivity() {
                     com.capstone.houseviewingapp.analysis.AnalysisFlow.ARG_HOUSE_NICKNAME to (houseNickname ?: ""),
                     com.capstone.houseviewingapp.analysis.AnalysisFlow.ARG_SELECTED_FILE_URI to (selectedFileUri ?: ""),
                     com.capstone.houseviewingapp.analysis.AnalysisFlow.ARG_ORIGIN_ADDRESS to (originAddress ?: ""),
-                    com.capstone.houseviewingapp.analysis.AnalysisFlow.ARG_HOUSE_ID to houseId
+                    com.capstone.houseviewingapp.analysis.AnalysisFlow.ARG_HOUSE_ID to houseId,
+                    com.capstone.houseviewingapp.analysis.AnalysisFlow.ARG_FREE_DIAGNOSIS_REQUEST_ID to (freeDiagnosisRequestId ?: "")
                 )
             )
             binding.navigationBar.menu.findItem(R.id.nav_analysis)?.isChecked = true
@@ -143,6 +145,7 @@ class MainActivity : AppCompatActivity() {
             sourceIntent.removeExtra(com.capstone.houseviewingapp.analysis.AnalysisFlow.ARG_SELECTED_FILE_URI)
             sourceIntent.removeExtra(com.capstone.houseviewingapp.analysis.AnalysisFlow.ARG_ORIGIN_ADDRESS)
             sourceIntent.removeExtra(com.capstone.houseviewingapp.analysis.AnalysisFlow.ARG_HOUSE_ID)
+            sourceIntent.removeExtra(com.capstone.houseviewingapp.analysis.AnalysisFlow.ARG_FREE_DIAGNOSIS_REQUEST_ID)
         }
 
         // NOTE: 알림 접근 권한 안내 바텀시트 표시
