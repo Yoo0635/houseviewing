@@ -14,4 +14,12 @@ public class PdfDownloadResponse {
     private Long pdfReportId;
 
     private String filePath;
+
+    private String status;
+
+    private String stage;
+
+    private String message;
+
+    private String requestId;
 }
