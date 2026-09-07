@@ -14,6 +14,7 @@ import com.house.houseviewing.global.external.kakao.service.KakaoAddress;
 import com.house.houseviewing.global.file.snapshot.service.SnapshotAnalysisService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,15 +30,39 @@ public class PreAnalysisService {
     private final PreAnalysisRepository preAnalysisRepository;
     private final KakaoAddress kakaoAddress;
 
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public Address parseAddress(String address) {
+        return kakaoAddress.parsingAddress(address);
+    }
+
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public PreAnalysisEntity analyze(PreContractDiagnosisRequest request, Address address, MultipartFile snapshot) {
+        return snapshotAnalysisService.preAnalyze(request.getNickname(), address, snapshot);
+    }
+
+    @Transactional
+    public PreAnalysisEntity save(Long userId, String requestId, PreAnalysisEntity analyze) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ExceptionCode.USER_NOT_FOUND));
+        analyze.addUser(user);
+        analyze.addFreeDiagnosisRequestId(requestId);
+        return preAnalysisRepository.save(analyze);
+    }
+
     @Transactional
     public PreAnalysisEntity preRegister(Long userId, PreContractDiagnosisRequest request, MultipartFile snapshot){
         UserEntity user = userRepository.findById(userId).
                 orElseThrow(() -> new AppException(ExceptionCode.USER_NOT_FOUND));
         validateFreeDiagnosisAvailable(user);
-        Address address = kakaoAddress.parsingAddress(request.getAddress());
-        PreAnalysisEntity analyze = snapshotAnalysisService.preAnalyze(request.getNickname(), address, snapshot);
+        Address address = parseAddress(request.getAddress());
+        PreAnalysisEntity analyze = analyze(request, address, snapshot);
         analyze.addUser(user);
         return preAnalysisRepository.save(analyze);
+    }
+
+    public PreAnalysisEntity getByRequestId(Long userId, String requestId) {
+        return preAnalysisRepository.findByUserIdAndFreeDiagnosisRequestId(userId, requestId)
+                .orElseThrow(() -> new AppException(ExceptionCode.ANALYSIS_NOT_FOUND));
     }
 
     public List<AnalysisResponse> getPreAnalyses(Long userId){
