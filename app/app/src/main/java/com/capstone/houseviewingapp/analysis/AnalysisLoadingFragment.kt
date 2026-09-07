@@ -27,6 +27,7 @@ import com.capstone.houseviewingapp.subscription.SubscriptionRepositoryProvider
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 class AnalysisLoadingFragment : Fragment() {
     private var _binding: FragmentAnalysisLoadingBinding? = null
@@ -124,6 +125,9 @@ class AnalysisLoadingFragment : Fragment() {
                 ?.trim()
                 ?.takeIf { it.isNotBlank() }
                 ?: "무료 1회 진단"
+            val freeDiagnosisRequestId = arguments?.getString(AnalysisFlow.ARG_FREE_DIAGNOSIS_REQUEST_ID)
+                ?.takeIf { it.isNotBlank() }
+                ?: UUID.randomUUID().toString()
             val accessToken = AuthTokenLocalStore.getAccessToken(requireContext()).orEmpty()
             if (accessToken.isBlank()) {
                 Toast.makeText(requireContext(), "로그인 정보가 만료되었습니다. 다시 로그인해 주세요.", Toast.LENGTH_SHORT).show()
@@ -135,6 +139,7 @@ class AnalysisLoadingFragment : Fragment() {
                 RecordSource.MANUAL -> {
                     requestManualDiagnosis(
                         accessToken = accessToken,
+                        requestId = freeDiagnosisRequestId,
                         fileUri = arguments?.getString(AnalysisFlow.ARG_SELECTED_FILE_URI).orEmpty(),
                         manualTitle = manualTitle,
                         manualAddress = manualAddress
@@ -162,6 +167,15 @@ class AnalysisLoadingFragment : Fragment() {
                 return@launch
             }
             if (source == RecordSource.MANUAL) {
+                if (pdf.status == "PROCESSING") {
+                    Toast.makeText(
+                        requireContext(),
+                        pdf.message ?: "같은 요청의 무료 진단이 처리 중입니다.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    findNavController().popBackStack()
+                    return@launch
+                }
                 val loginId = AuthTokenLocalStore.getLoginId(requireContext()).orEmpty()
                 QuickDiagnosisLocalStore.markFreeUsed(requireContext(), loginId)
             }
@@ -266,6 +280,7 @@ class AnalysisLoadingFragment : Fragment() {
 
     private suspend fun requestManualDiagnosis(
         accessToken: String,
+        requestId: String,
         fileUri: String,
         manualTitle: String,
         manualAddress: String
@@ -273,6 +288,7 @@ class AnalysisLoadingFragment : Fragment() {
         val initialResult = AnalysisRepositoryProvider.repository.preContractDiagnoses(
             context = requireContext(),
             accessToken = accessToken,
+            idempotencyKey = requestId,
             fileUri = fileUri,
             request = PreContractDiagnosisRequest(
                 nickname = manualTitle,
@@ -289,6 +305,7 @@ class AnalysisLoadingFragment : Fragment() {
         return AnalysisRepositoryProvider.repository.preContractDiagnoses(
             context = requireContext(),
             accessToken = accessToken,
+            idempotencyKey = requestId,
             fileUri = fileUri,
             request = PreContractDiagnosisRequest(
                 nickname = manualTitle,
@@ -332,6 +349,10 @@ class AnalysisLoadingFragment : Fragment() {
                 }
             "ER002" ->
                 "분석 엔진 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요. (코드: ER002)"
+            "DB006" ->
+                "무료 진단이 이미 처리 중입니다. 잠시 후 결과를 확인해 주세요. (코드: DB006)"
+            "VP005" ->
+                "진단 요청 식별값이 올바르지 않습니다. 다시 시도해 주세요. (코드: VP005)"
             "NF001", "NF002" ->
                 "등록된 집/주소를 찾지 못했습니다. 집 정보를 다시 확인해 주세요. (코드: ${remote.code})"
             else -> ApiErrorFormatter.withCode("분석 요청에 실패했습니다.", throwable)

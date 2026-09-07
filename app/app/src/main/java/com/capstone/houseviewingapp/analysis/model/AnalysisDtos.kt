@@ -16,8 +16,12 @@ data class PreContractDiagnosisRequest(
 
 /** PdfDownloadResponse */
 data class PdfDownloadResponse(
-    val pdfReportId: Long,
-    val filePath: String
+    val pdfReportId: Long? = null,
+    val filePath: String = "",
+    val status: String? = null,
+    val stage: String? = null,
+    val message: String? = null,
+    val requestId: String? = null
 )
 
 /** AnalysisResponse (목록 조회 /analyses) */

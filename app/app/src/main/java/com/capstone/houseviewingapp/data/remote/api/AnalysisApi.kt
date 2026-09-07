@@ -17,6 +17,7 @@ interface AnalysisApi {
     @POST("analysis/pre-contract-diganoses")
     fun preContractDiagnoses(
         @Header("Authorization") authorization: String,
+        @Header("Idempotency-Key") idempotencyKey: String,
         @Part file: MultipartBody.Part,
         @Part("data") data: RequestBody
     ): Call<PdfDownloadResponse>
@@ -25,6 +26,7 @@ interface AnalysisApi {
     @POST("analysis/pre-contract-diagnoses")
     fun preContractDiagnosesAlt(
         @Header("Authorization") authorization: String,
+        @Header("Idempotency-Key") idempotencyKey: String,
         @Part file: MultipartBody.Part,
         @Part("data") data: RequestBody
     ): Call<PdfDownloadResponse>
