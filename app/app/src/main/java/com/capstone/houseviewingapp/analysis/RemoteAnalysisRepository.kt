@@ -21,6 +21,7 @@ class RemoteAnalysisRepository : AnalysisRepository {
     override suspend fun preContractDiagnoses(
         context: Context,
         accessToken: String,
+        idempotencyKey: String,
         fileUri: String,
         request: PreContractDiagnosisRequest
     ): Result<PdfDownloadResponse> {
@@ -29,6 +30,7 @@ class RemoteAnalysisRepository : AnalysisRepository {
         val dataBody = dataJson.toRequestBody("application/json".toMediaTypeOrNull())
         val primary = analysisApi.preContractDiagnoses(
             authorization = bearer(accessToken),
+            idempotencyKey = idempotencyKey,
             file = filePart,
             data = dataBody
         ).executeApi()
@@ -36,6 +38,7 @@ class RemoteAnalysisRepository : AnalysisRepository {
         if (remote?.statusCode != 404) return primary
         return analysisApi.preContractDiagnosesAlt(
             authorization = bearer(accessToken),
+            idempotencyKey = idempotencyKey,
             file = filePart,
             data = dataBody
         ).executeApi()

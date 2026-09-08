@@ -9,14 +9,20 @@ import com.house.houseviewing.domain.analysis.postanalysis.service.PostAnalysisS
 import com.house.houseviewing.domain.analysis.preanalysis.entity.PreAnalysisEntity;
 import com.house.houseviewing.domain.analysis.preanalysis.service.PreAnalysisService;
 import com.house.houseviewing.domain.analysis.preanalysis.dto.request.PreContractDiagnosisRequest;
+import com.house.houseviewing.domain.common.Address;
 import com.house.houseviewing.domain.report.postreport.entity.PostReportEntity;
 import com.house.houseviewing.domain.report.postreport.service.PostReportRetryService;
 import com.house.houseviewing.domain.report.postreport.service.PostReportService;
 import com.house.houseviewing.domain.report.prereport.entity.PreReportEntity;
 import com.house.houseviewing.domain.report.prereport.service.PreReportService;
+import com.house.houseviewing.domain.subscription.enums.FreeDiagnosisStage;
+import com.house.houseviewing.domain.subscription.enums.FreeDiagnosisStatus;
+import com.house.houseviewing.domain.subscription.service.FreeDiagnosisClaim;
+import com.house.houseviewing.domain.subscription.service.FreeDiagnosisPersistenceService;
 import com.house.houseviewing.global.exception.AppException;
 import com.house.houseviewing.global.exception.ExceptionCode;
 import com.house.houseviewing.global.file.pdf.dto.PdfDownloadResponse;
+import com.house.houseviewing.global.file.pdf.dto.PdfUploadResult;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -47,6 +53,7 @@ class AnalysisQueryServiceTest {
     @Mock PostReportService postReportService;
     @Mock PostReportRetryService postReportRetryService;
     @Mock PreReportService preReportService;
+    @Mock FreeDiagnosisPersistenceService freeDiagnosisPersistenceService;
 
     @Nested
     @DisplayName("사후 계약 진단 실행")
@@ -116,22 +123,64 @@ class AnalysisQueryServiceTest {
             PreAnalysisEntity analysis = mock(PreAnalysisEntity.class);
             when(analysis.getId()).thenReturn(1L);
             PreReportEntity report = PreReportEntity.builder()
+                    .id(10L)
                     .pdfPath("/pre/path")
                     .build();
+            PdfUploadResult uploadResult = PdfUploadResult.builder()
+                    .pdfPath("/pre/path")
+                    .pdfName("pre.pdf")
+                    .pdfKey("pre-key")
+                    .pdfSizeBytes(100L)
+                    .build();
+            Address address = mock(Address.class);
+            String requestId = "7c7f9b06-f096-48eb-bfa7-09cbe9d1bc93";
 
-            given(preAnalysisService.preRegister(anyLong(), any(PreContractDiagnosisRequest.class), any(MultipartFile.class)))
+            given(freeDiagnosisPersistenceService.claim(1L, requestId))
+                    .willReturn(new FreeDiagnosisClaim(true, false, FreeDiagnosisStatus.PROCESSING, FreeDiagnosisStage.ADDRESS));
+            given(preAnalysisService.parseAddress(anyString())).willReturn(address);
+            given(preAnalysisService.analyze(any(PreContractDiagnosisRequest.class), eq(address), any(MultipartFile.class)))
                     .willReturn(analysis);
-            given(preReportService.preRegister(any(PreAnalysisEntity.class))).willReturn(report);
+            given(preAnalysisService.save(1L, requestId, analysis)).willReturn(analysis);
+            given(preReportService.createPdf(analysis)).willReturn(uploadResult);
+            given(preReportService.save(analysis, uploadResult)).willReturn(report);
 
             PreContractDiagnosisRequest request = PreContractDiagnosisRequest.builder()
                     .nickname("테스트")
                     .address("서울")
                     .build();
             MultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "data".getBytes());
-            PdfDownloadResponse result = analysisQueryService.executePreContractDiagnosis(1L, request, file);
+            PdfDownloadResponse result = analysisQueryService.executePreContractDiagnosis(1L, requestId, request, file);
 
             assertThat(result).isNotNull();
+            assertThat(result.getPdfReportId()).isEqualTo(10L);
             assertThat(result.getFilePath()).isEqualTo("/pre/path");
+            assertThat(result.getStatus()).isEqualTo("COMPLETED");
+            assertThat(result.getRequestId()).isEqualTo(requestId);
+            verify(freeDiagnosisPersistenceService).updateStage(1L, requestId, FreeDiagnosisStage.ANALYSIS);
+            verify(freeDiagnosisPersistenceService).updateStage(1L, requestId, FreeDiagnosisStage.PDF);
+            verify(freeDiagnosisPersistenceService).complete(1L, requestId);
+        }
+
+        @Test
+        @DisplayName("같은 요청이 처리 중이면 외부 호출 없이 상태를 반환")
+        void 같은_요청_처리중(){
+            String requestId = "7c7f9b06-f096-48eb-bfa7-09cbe9d1bc93";
+            given(freeDiagnosisPersistenceService.claim(1L, requestId))
+                    .willReturn(new FreeDiagnosisClaim(false, false, FreeDiagnosisStatus.PROCESSING, FreeDiagnosisStage.PDF));
+
+            PreContractDiagnosisRequest request = PreContractDiagnosisRequest.builder()
+                    .nickname("테스트")
+                    .address("서울")
+                    .build();
+            MultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "data".getBytes());
+            PdfDownloadResponse result = analysisQueryService.executePreContractDiagnosis(1L, requestId, request, file);
+
+            assertThat(result.getPdfReportId()).isNull();
+            assertThat(result.getStatus()).isEqualTo("PROCESSING");
+            assertThat(result.getStage()).isEqualTo("PDF");
+            assertThat(result.getRequestId()).isEqualTo(requestId);
+            verify(preAnalysisService, never()).analyze(any(), any(), any());
+            verify(preReportService, never()).createPdf(any());
         }
     }
 

@@ -4,11 +4,15 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import java.util.UUID
 
 // viewmodel은 등록 과정에서 입력된 데이터를 임시로 보관하는 역할을 합니다.
 class HouseRegistrationViewModel : ViewModel() {
     private val _draft = MutableStateFlow(HouseRegistrationDraft())
     val draft: StateFlow<HouseRegistrationDraft> = _draft
+    private var quickDiagnosisRequestId: String = UUID.randomUUID().toString()
+
+    fun currentQuickDiagnosisRequestId(): String = quickDiagnosisRequestId
 
     // NOTE : Step 1에서 입력받은 닉네임, 주소 정보를 업데이트하는 함수
     fun updateStep1(
@@ -53,6 +57,7 @@ class HouseRegistrationViewModel : ViewModel() {
     // NOTE : 등록 완료, 취소하면 초기 상태로 되돌리는 함수
     fun clearDraft() {
         _draft.value = HouseRegistrationDraft()
+        quickDiagnosisRequestId = UUID.randomUUID().toString()
     }
 
     // TODO : userId 전달 방식(JWT 추출 vs body) 서버와 확정

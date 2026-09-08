@@ -14,11 +14,13 @@ class MockAnalysisRepository : AnalysisRepository {
     override suspend fun preContractDiagnoses(
         context: Context,
         accessToken: String,
+        idempotencyKey: String,
         fileUri: String,
         request: PreContractDiagnosisRequest
     ): Result<PdfDownloadResponse> {
         if (accessToken.isBlank()) return Result.failure(IllegalStateException("UNAUTHORIZED"))
         if (fileUri.isBlank()) return Result.failure(IllegalArgumentException("FILE_REQUIRED"))
+        if (idempotencyKey.isBlank()) return Result.failure(IllegalArgumentException("IDEMPOTENCY_KEY_REQUIRED"))
         if (request.nickname.isBlank()) return Result.failure(IllegalArgumentException("NICKNAME_REQUIRED"))
         if (request.address.isBlank()) return Result.failure(IllegalArgumentException("ADDRESS_REQUIRED"))
 

@@ -49,7 +49,7 @@ public class PreAnalysisEntity extends BaseTimeEntity {
     private Integer ltvScore;
 
     @Builder
-    public PreAnalysisEntity(Long id, String nickname, String rawData, String mainReason, Address address, RiskLevel riskLevel, Integer ltvScore) {
+    public PreAnalysisEntity(Long id, String nickname, String rawData, String mainReason, Address address, RiskLevel riskLevel, Integer ltvScore, String freeDiagnosisRequestId) {
         this.id = id;
         this.nickname = nickname;
         this.rawData = rawData;
@@ -57,7 +57,11 @@ public class PreAnalysisEntity extends BaseTimeEntity {
         this.address = address;
         this.riskLevel = riskLevel;
         this.ltvScore = ltvScore;
+        this.freeDiagnosisRequestId = freeDiagnosisRequestId;
     }
+
+    @Column(unique = true)
+    private String freeDiagnosisRequestId;
 
     public void addReport(PreReportEntity report){
         this.preReportEntity = report;
@@ -66,5 +70,9 @@ public class PreAnalysisEntity extends BaseTimeEntity {
     public void addUser(UserEntity user){
         this.user = user;
         user.addPreAnalysis(this);
+    }
+
+    public void addFreeDiagnosisRequestId(String requestId) {
+        this.freeDiagnosisRequestId = requestId;
     }
 }

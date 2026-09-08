@@ -8,6 +8,7 @@ import com.house.houseviewing.global.file.pdf.dto.PdfUploadResult;
 import com.house.houseviewing.global.file.pdf.service.PdfReportTransferAndReceiveService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -18,10 +19,19 @@ public class PreReportService {
     private final PreReportRepository preReportRepository;
     private final PdfReportTransferAndReceiveService pdfReportTransferAndReceiveService;
 
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public PdfUploadResult createPdf(PreAnalysisEntity analyze) {
+        return pdfReportTransferAndReceiveService.preTransferAndReceive(getPdfReportPreRequest(analyze));
+    }
+
     @Transactional
     public PreReportEntity preRegister(PreAnalysisEntity analyze){
-        PdfPreReportRequest request = getPdfReportPreRequest(analyze);
-        PdfUploadResult uploadResult = pdfReportTransferAndReceiveService.preTransferAndReceive(request);
+        PdfUploadResult uploadResult = createPdf(analyze);
+        return save(analyze, uploadResult);
+    }
+
+    @Transactional
+    public PreReportEntity save(PreAnalysisEntity analyze, PdfUploadResult uploadResult){
         PreReportEntity pdfReport = getPdfReportEntity(uploadResult, analyze);
 
         return preReportRepository.save(pdfReport);

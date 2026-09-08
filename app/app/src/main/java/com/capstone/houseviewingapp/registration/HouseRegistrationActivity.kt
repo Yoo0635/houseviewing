@@ -143,10 +143,14 @@ class HouseRegistrationActivity : AppCompatActivity() {
                     return@setOnClickListener
                 }
                 if (isQuickDiagnosisMode) {
+                    if (isSubmittingRegistration) return@setOnClickListener
+                    isSubmittingRegistration = true
+                    setNextButtonEnabled(false)
                     val nickname = step3.getNicknameOrNull()
                         ?: vm.draft.value.nickname.trim()
                     val selectedFileUri = step3.getSelectedFileUriString().orEmpty()
                     val originAddress = vm.draft.value.originAddress
+                    val requestId = vm.currentQuickDiagnosisRequestId()
                     val intent = Intent(this, MainActivity::class.java).apply {
                         flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                         putExtra(MainActivity.EXTRA_SHOW_ANALYSIS_LOADING, true)
@@ -162,6 +166,10 @@ class HouseRegistrationActivity : AppCompatActivity() {
                         putExtra(
                             com.capstone.houseviewingapp.analysis.AnalysisFlow.ARG_ORIGIN_ADDRESS,
                             originAddress
+                        )
+                        putExtra(
+                            com.capstone.houseviewingapp.analysis.AnalysisFlow.ARG_FREE_DIAGNOSIS_REQUEST_ID,
+                            requestId
                         )
                     }
                     startActivity(intent)
