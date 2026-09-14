@@ -35,6 +35,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'com.querydsl:querydsl-jpa:5.1.0:jakarta'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.0'
     implementation 'org.springframework.boot:spring-boot-starter-aop'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
@@ -48,6 +49,9 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 	annotationProcessor 'org.projectlombok:lombok'
+	annotationProcessor 'com.querydsl:querydsl-apt:5.1.0:jakarta'
+	annotationProcessor 'jakarta.persistence:jakarta.persistence-api'
+	annotationProcessor 'jakarta.annotation:jakarta.annotation-api'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation platform('org.testcontainers:testcontainers-bom:1.20.4')
 	testImplementation 'org.testcontainers:junit-jupiter'

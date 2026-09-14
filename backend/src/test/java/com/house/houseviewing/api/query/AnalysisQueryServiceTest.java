@@ -1,5 +1,8 @@
 package com.house.houseviewing.api.query;
 
+import com.house.houseviewing.api.query.dto.AnalysisHistoryPageResponse;
+import com.house.houseviewing.api.query.dto.AnalysisHistoryRow;
+import com.house.houseviewing.api.query.repository.AnalysisHistoryQueryRepository;
 import com.house.houseviewing.api.query.service.AnalysisQueryService;
 import com.house.houseviewing.domain.analysis.postanalysis.dto.response.AnalysisResponse;
 import com.house.houseviewing.domain.analysis.postanalysis.dto.response.PdfGenerationStatus;
@@ -10,6 +13,7 @@ import com.house.houseviewing.domain.analysis.preanalysis.entity.PreAnalysisEnti
 import com.house.houseviewing.domain.analysis.preanalysis.service.PreAnalysisService;
 import com.house.houseviewing.domain.analysis.preanalysis.dto.request.PreContractDiagnosisRequest;
 import com.house.houseviewing.domain.common.Address;
+import com.house.houseviewing.domain.common.RiskLevel;
 import com.house.houseviewing.domain.report.postreport.entity.PostReportEntity;
 import com.house.houseviewing.domain.report.postreport.service.PostReportRetryService;
 import com.house.houseviewing.domain.report.postreport.service.PostReportService;
@@ -35,9 +39,11 @@ import org.mockito.quality.Strictness;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.BDDMockito.*;
@@ -54,6 +60,7 @@ class AnalysisQueryServiceTest {
     @Mock PostReportRetryService postReportRetryService;
     @Mock PreReportService preReportService;
     @Mock FreeDiagnosisPersistenceService freeDiagnosisPersistenceService;
+    @Mock AnalysisHistoryQueryRepository analysisHistoryQueryRepository;
 
     @Nested
     @DisplayName("사후 계약 진단 실행")
@@ -189,29 +196,82 @@ class AnalysisQueryServiceTest {
     class GetAnalyses {
 
         @Test
-        @DisplayName("성공")
-        void 성공(){
-            AnalysisResponse postResponse = AnalysisResponse.builder()
-                    .pdfReportId(11L)
-                    .nickname("사후")
-                    .mainReason("안전")
-                    .build();
-            AnalysisResponse preResponse = AnalysisResponse.builder()
-                    .pdfReportId(22L)
-                    .nickname("사전")
-                    .mainReason("주의")
-                    .build();
+        @DisplayName("첫 페이지 10건과 다음 offset을 반환한다")
+        void 첫_페이지(){
+            given(analysisHistoryQueryRepository.findPostAnalyses(1L, null, 0L, 11L))
+                    .willReturn(rows("POST", 11, 0));
+            given(analysisHistoryQueryRepository.findPreAnalyses(1L, null, 0L, 11L))
+                    .willReturn(List.of());
 
-            given(postAnalysisService.getPostAnalyses(anyLong())).willReturn(List.of(postResponse));
-            given(preAnalysisService.getPreAnalyses(anyLong())).willReturn(List.of(preResponse));
+            AnalysisHistoryPageResponse result = analysisQueryService.getAnalyses(1L, 0L, null);
 
-            List<AnalysisResponse> result = analysisQueryService.getAnalyses(1L);
+            assertThat(result.items()).hasSize(10);
+            assertThat(result.nextOffset()).isEqualTo(10L);
+            assertThat(result.hasNext()).isTrue();
+            assertThat(result.items().get(0).getAnalysisId()).isEqualTo(100L);
+        }
 
-            assertThat(result).hasSize(2);
-            assertThat(result.get(0).getPdfReportId()).isEqualTo(11L);
-            assertThat(result.get(0).getNickname()).isEqualTo("사후");
-            assertThat(result.get(1).getPdfReportId()).isEqualTo(22L);
-            assertThat(result.get(1).getNickname()).isEqualTo("사전");
+        @Test
+        @DisplayName("마지막 페이지는 다음 offset을 null로 반환한다")
+        void 마지막_페이지(){
+            given(analysisHistoryQueryRepository.findPostAnalyses(1L, null, 0L, 16L))
+                    .willReturn(rows("POST", 4, 20));
+            given(analysisHistoryQueryRepository.findPreAnalyses(1L, null, 0L, 16L))
+                    .willReturn(rows("PRE", 2, 24));
+
+            AnalysisHistoryPageResponse result = analysisQueryService.getAnalyses(1L, 5L, null);
+
+            assertThat(result.items()).hasSize(1);
+            assertThat(result.nextOffset()).isNull();
+            assertThat(result.hasNext()).isFalse();
+        }
+
+        @Test
+        @DisplayName("PRE와 POST를 정렬한 뒤 통합 offset을 한 번만 적용한다")
+        void 통합_정렬_후_offset(){
+            given(analysisHistoryQueryRepository.findPostAnalyses(1L, null, 0L, 13L))
+                    .willReturn(List.of(
+                            row(10L, "POST", 0, RiskLevel.SAFE),
+                            row(8L, "POST", 1, RiskLevel.SAFE),
+                            row(7L, "POST", 1, RiskLevel.SAFE)
+                    ));
+            given(analysisHistoryQueryRepository.findPreAnalyses(1L, null, 0L, 13L))
+                    .willReturn(List.of(
+                            row(9L, "PRE", 0, RiskLevel.SAFE),
+                            row(6L, "PRE", 2, RiskLevel.SAFE)
+                    ));
+
+            AnalysisHistoryPageResponse result = analysisQueryService.getAnalyses(1L, 2L, null);
+
+            assertThat(result.items())
+                    .extracting(AnalysisResponse::getAnalysisId)
+                    .containsExactly(8L, 7L, 6L);
+            assertThat(result.hasNext()).isFalse();
+        }
+
+        @Test
+        @DisplayName("위험도 필터를 페이징 전에 적용한다")
+        void 위험도_필터(){
+            given(analysisHistoryQueryRepository.findPostAnalyses(1L, RiskLevel.DANGER, 0L, 11L))
+                    .willReturn(List.of(row(1L, "POST", 0, RiskLevel.DANGER)));
+            given(analysisHistoryQueryRepository.findPreAnalyses(1L, RiskLevel.DANGER, 0L, 11L))
+                    .willReturn(List.of());
+
+            AnalysisHistoryPageResponse result = analysisQueryService.getAnalyses(1L, 0L, RiskLevel.DANGER);
+
+            assertThat(result.items()).hasSize(1);
+            assertThat(result.items().get(0).getRiskLevel()).isEqualTo(RiskLevel.DANGER);
+            then(analysisHistoryQueryRepository).should().findPostAnalyses(1L, RiskLevel.DANGER, 0L, 11L);
+            then(analysisHistoryQueryRepository).should().findPreAnalyses(1L, RiskLevel.DANGER, 0L, 11L);
+        }
+
+        @Test
+        @DisplayName("지원하지 않는 offset은 거절한다")
+        void offset_검증(){
+            assertThatThrownBy(() -> analysisQueryService.getAnalyses(1L, -1L, null))
+                    .isInstanceOf(AppException.class);
+            assertThatThrownBy(() -> analysisQueryService.getAnalyses(1L, 10_001L, null))
+                    .isInstanceOf(AppException.class);
         }
     }
 
@@ -220,21 +280,37 @@ class AnalysisQueryServiceTest {
     class GetDiffAnalyses {
 
         @Test
-        @DisplayName("성공")
-        void 성공(){
-            AnalysisResponse diffResponse = AnalysisResponse.builder()
-                    .pdfReportId(33L)
-                    .nickname("차이")
-                    .mainReason("주의")
-                    .build();
+        @DisplayName("DIFF만 조회하고 offset을 적용한다")
+        void diff_only(){
+            given(analysisHistoryQueryRepository.findDiffAnalyses(1L, RiskLevel.WARNING, 3L, 11L))
+                    .willReturn(rows("POST", 3, 30));
 
-            given(postAnalysisService.getDiffAnalyses(anyLong())).willReturn(List.of(diffResponse));
+            AnalysisHistoryPageResponse result = analysisQueryService.getDiffAnalyses(1L, 3L, RiskLevel.WARNING);
 
-            List<AnalysisResponse> result = analysisQueryService.getDiffAnalyses(1L);
-
-            assertThat(result).hasSize(1);
-            assertThat(result.get(0).getPdfReportId()).isEqualTo(33L);
-            assertThat(result.get(0).getNickname()).isEqualTo("차이");
+            assertThat(result.items()).hasSize(3);
+            assertThat(result.nextOffset()).isNull();
+            assertThat(result.hasNext()).isFalse();
+            then(analysisHistoryQueryRepository).should().findDiffAnalyses(1L, RiskLevel.WARNING, 3L, 11L);
         }
+    }
+
+    private List<AnalysisHistoryRow> rows(String type, int size, int minutesAgoStart) {
+        return java.util.stream.IntStream.range(0, size)
+                .mapToObj(i -> row(100L + i, type, minutesAgoStart + i, RiskLevel.SAFE))
+                .toList();
+    }
+
+    private AnalysisHistoryRow row(Long id, String type, int minutesAgo, RiskLevel riskLevel) {
+        return new AnalysisHistoryRow(
+                id,
+                LocalDateTime.of(2026, 9, 14, 12, 0).minusMinutes(minutesAgo),
+                type,
+                id + 1000,
+                type + "집",
+                "서울",
+                "이유",
+                riskLevel,
+                80
+        );
     }
 }
