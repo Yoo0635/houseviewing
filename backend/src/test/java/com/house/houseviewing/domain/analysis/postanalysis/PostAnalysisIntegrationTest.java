@@ -30,7 +30,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -40,7 +39,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.*;
 
 @SpringBootTest
-@Transactional
 public class PostAnalysisIntegrationTest {
 
     @Autowired PostAnalysisService postAnalysisService;
@@ -60,20 +58,20 @@ public class PostAnalysisIntegrationTest {
     @Test
     @DisplayName("사후 분석 목록 조회")
     void 사후_분석_목록_조회(){
+        given(snapshotAnalysisService.postAnalyze(any()))
+                .willReturn(PostAnalysisEntity.builder()
+                        .riskLevel(RiskLevel.SAFE)
+                        .analysisType(AnalysisType.BASIC)
+                        .mainReason("안전")
+                        .ltvScore(85)
+                        .rawData("{\"test\": true}")
+                        .build());
+
         UserEntity user = getUserEntity();
         HouseEntity house = getHouseEntity(user);
-        ContractEntity contract = getContract(house);
+        getContract(house);
 
-        PostAnalysisEntity analysis = PostAnalysisEntity.builder()
-                .riskLevel(RiskLevel.SAFE)
-                .analysisType(AnalysisType.BASIC)
-                .mainReason("안전")
-                .ltvScore(85)
-                .rawData("{\"test\": true}")
-                .build();
-        analysis.addHouse(house);
-        analysis.addContract(contract);
-        postAnalysisRepository.save(analysis);
+        postAnalysisService.postRegister(house.getId(), null);
 
         List<PostAnalysisEntity> analyses = postAnalysisRepository.findAllByUserId(user.getId());
 
@@ -83,20 +81,20 @@ public class PostAnalysisIntegrationTest {
     @Test
     @DisplayName("차이 분석 목록 조회")
     void 차이_분석_목록_조회(){
+        given(snapshotDiffAnalysisService.diffAnalyze(anyString()))
+                .willReturn(PostAnalysisEntity.builder()
+                        .riskLevel(RiskLevel.WARNING)
+                        .analysisType(AnalysisType.DIFF)
+                        .mainReason("주의")
+                        .ltvScore(70)
+                        .rawData("{\"diff\": true}")
+                        .build());
+
         UserEntity user = getUserEntity();
         HouseEntity house = getHouseEntity(user);
-        ContractEntity contract = getContract(house);
+        getContract(house);
 
-        PostAnalysisEntity analysis = PostAnalysisEntity.builder()
-                .riskLevel(RiskLevel.WARNING)
-                .analysisType(AnalysisType.DIFF)
-                .mainReason("주의")
-                .ltvScore(70)
-                .rawData("{\"diff\": true}")
-                .build();
-        analysis.addHouse(house);
-        analysis.addContract(contract);
-        postAnalysisRepository.save(analysis);
+        postAnalysisService.diffRegister(house.getId(), "{\"snapshot\":true}", "snapshot-hash");
 
         List<PostAnalysisEntity> diffAnalyses = postAnalysisRepository
                 .findAllByUserIdAndAnalysisType(user.getId(), AnalysisType.DIFF);
@@ -106,7 +104,7 @@ public class PostAnalysisIntegrationTest {
     }
 
     private UserEntity getUserEntity() {
-        UserEntity user = UserFixture.createDefault().build();
+        UserEntity user = UserFixture.createUnique().build();
         UserRegisterRequest requestUser = UserFixture.createRegister(user).build();
         userService.register(requestUser);
         return userRepository.findByLoginId(user.getLoginId()).orElseThrow();
