@@ -145,6 +145,7 @@ class AnalysisPagingRepositoryTest {
         override suspend fun preContractDiagnoses(
             context: Context,
             accessToken: String,
+            idempotencyKey: String,
             fileUri: String,
             request: PreContractDiagnosisRequest
         ): Result<PdfDownloadResponse> = error("unused")
