@@ -14,7 +14,7 @@
 
 - Page size is exactly 10; fetch 11 candidates to determine `hasNext` without a COUNT query.
 - `/analyses` preserves `(createdAt DESC, POST before PRE, analysisId DESC)` and applies OFFSET once after merging PRE and POST.
-- `/analyses/diff` keeps `analysisType=DIFF`; user and optional risk filters apply before paging.
+- `/analyses/diff` filters stored analyses by `analysisType=DIFF`, but response `analysisType` stays as source type `POST`; user and optional risk filters apply before paging.
 - Projection excludes `rawData` and report bodies; JOINs must not trigger per-row SQL.
 - Android resets offset to 0 when tab or risk filter changes and uses the server-provided `nextOffset` for scrolling.
 - k6 validation uses 1,000 histories, 10 concurrent users, and exactly 100 requests for both baseline and optimized runs.

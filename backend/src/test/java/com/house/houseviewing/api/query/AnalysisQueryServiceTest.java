@@ -288,6 +288,9 @@ class AnalysisQueryServiceTest {
             AnalysisHistoryPageResponse result = analysisQueryService.getDiffAnalyses(1L, 3L, RiskLevel.WARNING);
 
             assertThat(result.items()).hasSize(3);
+            assertThat(result.items())
+                    .extracting(AnalysisResponse::getAnalysisType)
+                    .containsOnly("POST");
             assertThat(result.nextOffset()).isNull();
             assertThat(result.hasNext()).isFalse();
             then(analysisHistoryQueryRepository).should().findDiffAnalyses(1L, RiskLevel.WARNING, 3L, 11L);
