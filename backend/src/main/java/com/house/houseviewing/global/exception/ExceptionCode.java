@@ -35,6 +35,7 @@ public enum ExceptionCode {
     VERIFY_FILE_FAILED("VP003", HttpStatus.BAD_REQUEST, "유효하지 않은 파일입니다"),
     INVALID_PDF_REQUEST("VP004", HttpStatus.BAD_REQUEST, "PDF 생성 요청이 올바르지 않습니다."),
     INVALID_IDEMPOTENCY_KEY("VP005", HttpStatus.BAD_REQUEST, "Idempotency-Key 헤더가 올바르지 않습니다."),
+    INVALID_PAGING_REQUEST("VP006", HttpStatus.BAD_REQUEST, "페이징 요청이 올바르지 않습니다."),
 
     // ER
     FILE_SAVE_FAILED("ER001", HttpStatus.BAD_REQUEST, "파일 저장에 실패했습니다."),

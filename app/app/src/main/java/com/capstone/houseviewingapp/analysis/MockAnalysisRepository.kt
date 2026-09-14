@@ -1,6 +1,7 @@
 package com.capstone.houseviewingapp.analysis
 
 import android.content.Context
+import com.capstone.houseviewingapp.analysis.model.AnalysisHistoryPageResponse
 import com.capstone.houseviewingapp.analysis.model.AnalysisResponse
 import com.capstone.houseviewingapp.analysis.model.PdfDownloadResponse
 import com.capstone.houseviewingapp.analysis.model.PreContractDiagnosisRequest
@@ -69,14 +70,24 @@ class MockAnalysisRepository : AnalysisRepository {
         )
     }
 
-    override suspend fun getAnalyses(accessToken: String): Result<List<AnalysisResponse>> {
+    override suspend fun getAnalyses(
+        accessToken: String,
+        offset: Long,
+        riskLevel: ApiRiskLevel?
+    ): Result<AnalysisHistoryPageResponse> {
         if (accessToken.isBlank()) return Result.failure(IllegalStateException("UNAUTHORIZED"))
-        return Result.success(records.toList())
+        return Result.success(records.toList().filteredPage(offset, riskLevel))
     }
 
-    override suspend fun getDiffAnalyses(accessToken: String): Result<List<AnalysisResponse>> {
+    override suspend fun getDiffAnalyses(
+        accessToken: String,
+        offset: Long,
+        riskLevel: ApiRiskLevel?
+    ): Result<AnalysisHistoryPageResponse> {
         if (accessToken.isBlank()) return Result.failure(IllegalStateException("UNAUTHORIZED"))
-        return Result.success(records.filter { it.riskLevel == ApiRiskLevel.DANGER })
+        return Result.success(
+            records.filter { it.riskLevel == ApiRiskLevel.DANGER }.filteredPage(offset, riskLevel)
+        )
     }
 
     private fun addRecord(pdfReportId: Long, nickname: String, address: String, risk: ApiRiskLevel) {
@@ -93,5 +104,24 @@ class MockAnalysisRepository : AnalysisRepository {
                 ltvScore = 50
             )
         )
+    }
+
+    private fun List<AnalysisResponse>.filteredPage(
+        offset: Long,
+        riskLevel: ApiRiskLevel?
+    ): AnalysisHistoryPageResponse {
+        val filtered = if (riskLevel == null) this else filter { it.riskLevel == riskLevel }
+        val start = offset.coerceAtLeast(0L).toInt().coerceAtMost(filtered.size)
+        val pageItems = filtered.drop(start).take(PAGE_SIZE)
+        val nextOffset = start + pageItems.size.toLong()
+        return AnalysisHistoryPageResponse(
+            items = pageItems,
+            nextOffset = nextOffset.takeIf { it < filtered.size },
+            hasNext = nextOffset < filtered.size
+        )
+    }
+
+    private companion object {
+        const val PAGE_SIZE = 10
     }
 }

@@ -8,12 +8,12 @@ import android.view.View
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.capstone.houseviewingapp.MainActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.capstone.houseviewingapp.R
-import com.capstone.houseviewingapp.analysis.model.AnalysisResponse
 import com.capstone.houseviewingapp.analysis.model.ApiRiskLevel
 import com.capstone.houseviewingapp.data.local.AuthTokenLocalStore
 import com.capstone.houseviewingapp.data.local.AnalysisLocalStore
@@ -28,6 +28,8 @@ class AnalysisFragment : Fragment(R.layout.fragment_analysis) {
 
     private lateinit var recordAdapter: AnalysisRecordAdapter
     private var allRecords: List<AnalysisRecordItem> = emptyList()
+    private val historyPager by lazy { AnalysisHistoryPager(AnalysisRepositoryProvider.repository) }
+    private var isPaging = false
 
     private enum class RecordTab { MY, AUTO }
     private var selectedTab: RecordTab = RecordTab.MY
@@ -85,14 +87,28 @@ class AnalysisFragment : Fragment(R.layout.fragment_analysis) {
                 }
             }
         )
-        binding.recordRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+        val layoutManager = LinearLayoutManager(requireContext())
+        binding.recordRecyclerView.layoutManager = layoutManager
         binding.recordRecyclerView.adapter = recordAdapter
+        binding.analysisScrollView.setOnScrollChangeListener(
+            NestedScrollView.OnScrollChangeListener { scrollView, _, scrollY, _, oldScrollY ->
+                if (scrollY > oldScrollY && isNearBottom(scrollView)) {
+                    loadNextPage()
+                }
+            }
+        )
     }
     private fun setupTabs() = with(binding) {
-        tabMyRecord.setOnClickListener { selectTab(RecordTab.MY, animate = true) }
-        tabAutoRecord.setOnClickListener { selectTab(RecordTab.AUTO, animate = true) }
+        tabMyRecord.setOnClickListener { changeTab(RecordTab.MY) }
+        tabAutoRecord.setOnClickListener { changeTab(RecordTab.AUTO) }
 
         tabLayout.post { selectTab(selectedTab, animate = false) }
+    }
+
+    private fun changeTab(tab: RecordTab) {
+        if (selectedTab == tab) return
+        selectTab(tab, animate = true)
+        refreshFromServerAndRender()
     }
 
     private fun selectTab(tab: RecordTab, animate: Boolean) = with(binding) {
@@ -131,7 +147,7 @@ class AnalysisFragment : Fragment(R.layout.fragment_analysis) {
 
     private fun setupFilterEvents() {
         binding.filterChipGroup.setOnCheckedStateChangeListener { _, _ ->
-            applyFilters()
+            refreshFromServerAndRender()
         }
     }
 
@@ -142,11 +158,11 @@ class AnalysisFragment : Fragment(R.layout.fragment_analysis) {
         }
 
         val filtered = bySource.filter { item ->
-            when (binding.filterChipGroup.checkedChipId) {
-                R.id.chipRed -> item.level == RiskLevel.RED
-                R.id.chipAmber -> item.level == RiskLevel.AMBER
-                R.id.chipBlue -> item.level == RiskLevel.BLUE
-                else -> true // chipAll
+            when (selectedRiskFilter()) {
+                ApiRiskLevel.DANGER -> item.level == RiskLevel.RED
+                ApiRiskLevel.WARNING -> item.level == RiskLevel.AMBER
+                ApiRiskLevel.SAFE -> item.level == RiskLevel.BLUE
+                null -> true
             }
         }
 
@@ -180,139 +196,70 @@ class AnalysisFragment : Fragment(R.layout.fragment_analysis) {
         val context = requireContext()
         val localRecords = AnalysisLocalStore.getRecords(context)
         val accessToken = AuthTokenLocalStore.getAccessToken(context).orEmpty()
-        if (accessToken.isBlank() || localRecords.isEmpty()) {
+        if (accessToken.isBlank()) {
             allRecords = localRecords
             applyFilters()
             return
         }
+        historyPager.reset(selectedSource(), selectedRiskFilter())
+        loadNextPage()
+    }
+
+    private fun loadNextPage() {
+        if (isPaging || _binding == null) return
+        val context = requireContext()
+        val accessToken = AuthTokenLocalStore.getAccessToken(context).orEmpty()
+        if (accessToken.isBlank()) return
+        val requestedSource = selectedSource()
+        val requestedRisk = selectedRiskFilter()
+        isPaging = true
+        binding.pagingProgressBar.visibility = View.VISIBLE
         viewLifecycleOwner.lifecycleScope.launch {
-            val manualAnalyses = AnalysisRepositoryProvider.repository
-                .getAnalyses(accessToken)
-                .getOrNull()
-                .orEmpty()
-            val autoAnalyses = AnalysisRepositoryProvider.repository
-                .getDiffAnalyses(accessToken)
-                .getOrNull()
-                .orEmpty()
-
-            val merged = localRecords.map { record ->
-                mergeWithServerMeta(record, manualAnalyses, autoAnalyses)
+            val result = historyPager.loadNext(accessToken, requestedSource, requestedRisk)
+            val stillSelected = _binding != null &&
+                selectedSource() == requestedSource && selectedRiskFilter() == requestedRisk
+            if (stillSelected) {
+                result.onSuccess { records ->
+                    val localByReportId = AnalysisLocalStore.getRecords(context)
+                        .mapNotNull { local -> local.pdfReportId?.let { it to local } }
+                        .toMap()
+                    allRecords = records.map { server ->
+                        val local = server.pdfReportId?.let(localByReportId::get)
+                        server.copy(sourcePdfUri = local?.sourcePdfUri)
+                    }
+                    applyFilters()
+                }.onFailure {
+                    if (allRecords.isEmpty()) {
+                        allRecords = AnalysisLocalStore.getRecords(context)
+                        applyFilters()
+                    }
+                }
             }
-            if (merged != localRecords) {
-                AnalysisLocalStore.setRecords(context, merged)
-            }
-            allRecords = merged
-            applyFilters()
+            isPaging = false
+            _binding?.pagingProgressBar?.visibility = View.GONE
+            if (_binding != null && !stillSelected) loadNextPage()
         }
     }
 
-    private fun mergeWithServerMeta(
-        record: AnalysisRecordItem,
-        manualAnalyses: List<AnalysisResponse>,
-        autoAnalyses: List<AnalysisResponse>
-    ): AnalysisRecordItem {
-        // AUTO는 카드 메타와 PDF URL을 같은 분석 결과로 유지해야 한다.
-        // 그런데 /analyses/diff 응답에는 PDF URL이 없어서, 서버 메타를 임의 매칭하면
-        // "카드는 SAFE, PDF는 WARNING" 같은 불일치가 생길 수 있다.
-        // 이미 PDF가 있는 AUTO 레코드는 저장 당시 값을 우선 신뢰한다.
-        if (record.source == RecordSource.AUTO && !record.sourcePdfUri.isNullOrBlank()) {
-            return record
-        }
-        val candidates = if (record.source == RecordSource.AUTO) autoAnalyses else manualAnalyses
-        val best = selectBestServerMeta(
-            candidates = candidates,
-            targetPdfReportId = record.pdfReportId,
-            nickname = record.title,
-            address = record.address,
-            source = record.source
-        ) ?: return record
-        return record.copy(
-            riskSummary = best.mainReason?.takeIf { it.isNotBlank() } ?: record.riskSummary,
-            level = best.riskLevel?.toUiRiskLevel() ?: record.level,
-            ltv = best.ltvScore?.toDouble() ?: record.ltv,
-            pdfReportId = best.pdfReportId ?: record.pdfReportId
-        )
-    }
-
-    private fun selectBestServerMeta(
-        candidates: List<AnalysisResponse>,
-        targetPdfReportId: Long?,
-        nickname: String,
-        address: String,
-        source: RecordSource
-    ): AnalysisResponse? {
-        if (candidates.isEmpty()) return null
-        val sourceFiltered = filterCandidatesBySource(candidates, source)
-        if (sourceFiltered.isEmpty()) return null
-        targetPdfReportId?.let { reportId ->
-            sourceFiltered.firstOrNull { it.pdfReportId == reportId }?.let { return it }
-        }
-        if (source == RecordSource.AUTO) {
-            // 자동 감지 기록은 가장 최신 DIFF 결과(첫 원소)를 화면 기준값으로 사용한다.
-            return sourceFiltered.firstOrNull()
-        }
-        val normalizedNickname = normalizeKey(nickname)
-        val ordered = if (source == RecordSource.MANUAL) sourceFiltered.asReversed() else sourceFiltered
-
-        ordered.firstOrNull { item ->
-            normalizeKey(item.nickname) == normalizedNickname &&
-                normalizeAddress(item.address) == normalizeAddress(address)
-        }?.let { return it }
-
-        ordered.firstOrNull { item ->
-            normalizeKey(item.nickname) == normalizedNickname &&
-                matchAddressScore(item.address, address) >= 2
-        }?.let { return it }
-
-        return if (source == RecordSource.AUTO) {
-            ordered.firstOrNull { matchAddressScore(it.address, address) >= 2 }
-        } else {
-            null
+    private fun selectedSource(): RecordSource {
+        return when (selectedTab) {
+            RecordTab.MY -> RecordSource.MANUAL
+            RecordTab.AUTO -> RecordSource.AUTO
         }
     }
 
-    private fun filterCandidatesBySource(
-        candidates: List<AnalysisResponse>,
-        source: RecordSource
-    ): List<AnalysisResponse> {
-        val expectedType = when (source) {
-            RecordSource.MANUAL -> "PRE"
-            RecordSource.AUTO -> "POST"
-        }
-        val typed = candidates.filter { it.analysisType.equals(expectedType, ignoreCase = true) }
-        return if (typed.isNotEmpty()) typed else candidates
-    }
-
-    private fun normalizeKey(value: String): String {
-        return value
-            .trim()
-            .lowercase()
-            .replace(Regex("\\s+"), "")
-    }
-
-    private fun matchAddressScore(serverAddress: String, localAddress: String): Int {
-        val a = normalizeAddress(serverAddress)
-        val b = normalizeAddress(localAddress)
-        if (a.isBlank() || b.isBlank()) return 0
-        return when {
-            a == b -> 3
-            a.contains(b) || b.contains(a) -> 2
-            else -> 0
+    private fun selectedRiskFilter(): ApiRiskLevel? {
+        return when (binding.filterChipGroup.checkedChipId) {
+            R.id.chipRed -> ApiRiskLevel.DANGER
+            R.id.chipAmber -> ApiRiskLevel.WARNING
+            R.id.chipBlue -> ApiRiskLevel.SAFE
+            else -> null
         }
     }
 
-    private fun normalizeAddress(value: String): String {
-        return value
-            .lowercase()
-            .replace(Regex("\\s+"), "")
-            .replace("대한민국", "")
-            .replace("경기도", "경기")
-    }
-
-    private fun ApiRiskLevel.toUiRiskLevel(): RiskLevel = when (this) {
-        ApiRiskLevel.DANGER -> RiskLevel.RED
-        ApiRiskLevel.WARNING -> RiskLevel.AMBER
-        ApiRiskLevel.SAFE -> RiskLevel.BLUE
+    private fun isNearBottom(scrollView: NestedScrollView): Boolean {
+        val child = scrollView.getChildAt(0) ?: return false
+        return scrollView.scrollY >= child.measuredHeight - scrollView.measuredHeight - 64
     }
 
 }

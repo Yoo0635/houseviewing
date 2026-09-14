@@ -35,3 +35,9 @@ data class AnalysisResponse(
     @SerializedName(value = "ltvScore", alternate = ["ltv_score"])
     val ltvScore: Int?
 )
+
+data class AnalysisHistoryPageResponse(
+    val items: List<AnalysisResponse>,
+    val nextOffset: Long?,
+    val hasNext: Boolean
+)

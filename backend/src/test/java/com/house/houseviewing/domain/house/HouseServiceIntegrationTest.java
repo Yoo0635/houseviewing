@@ -17,14 +17,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.*;
 import static org.mockito.ArgumentMatchers.anyString;
 
 @SpringBootTest
-@Transactional
 public class HouseServiceIntegrationTest {
 
     @Autowired UserService userService;
@@ -60,7 +58,7 @@ public class HouseServiceIntegrationTest {
     }
 
     private UserEntity getUserEntity() {
-        UserEntity build = UserFixture.createDefault().build();
+        UserEntity build = UserFixture.createUnique().build();
         UserRegisterRequest build1 = UserFixture.createRegister(build).build();
         userService.register(build1);
         return userRepository.findByLoginId(build.getLoginId()).orElseThrow();

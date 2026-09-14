@@ -1,6 +1,7 @@
 package com.capstone.houseviewingapp.data.remote.api
 
-import com.capstone.houseviewingapp.analysis.model.AnalysisResponse
+import com.capstone.houseviewingapp.analysis.model.AnalysisHistoryPageResponse
+import com.capstone.houseviewingapp.analysis.model.ApiRiskLevel
 import com.capstone.houseviewingapp.analysis.model.PdfDownloadResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -11,6 +12,7 @@ import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface AnalysisApi {
     @Multipart
@@ -47,11 +49,15 @@ interface AnalysisApi {
 
     @GET("analyses")
     fun getAnalyses(
-        @Header("Authorization") authorization: String
-    ): Call<List<AnalysisResponse>>
+        @Header("Authorization") authorization: String,
+        @Query("offset") offset: Long = 0L,
+        @Query("riskLevel") riskLevel: ApiRiskLevel? = null
+    ): Call<AnalysisHistoryPageResponse>
 
     @GET("analyses/diff")
     fun getDiffAnalyses(
-        @Header("Authorization") authorization: String
-    ): Call<List<AnalysisResponse>>
+        @Header("Authorization") authorization: String,
+        @Query("offset") offset: Long = 0L,
+        @Query("riskLevel") riskLevel: ApiRiskLevel? = null
+    ): Call<AnalysisHistoryPageResponse>
 }

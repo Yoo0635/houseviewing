@@ -8,11 +8,17 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 public class AnalysisResponse {
+
+    private Long analysisId;
+
+    private LocalDateTime createdAt;
 
     private Long pdfReportId;
 
@@ -32,6 +38,8 @@ public class AnalysisResponse {
         String nickname = postAnalysis.getHouse().getNickname();
         String address = postAnalysis.getHouse().getAddress().getAddressName();
         return AnalysisResponse.builder()
+                .analysisId(postAnalysis.getId())
+                .createdAt(postAnalysis.getCreatedAt())
                 .pdfReportId(postAnalysis.getPdfReport() != null ? postAnalysis.getPdfReport().getId() : null)
                 .nickname(nickname)
                 .address(address)
@@ -44,6 +52,8 @@ public class AnalysisResponse {
 
     public static AnalysisResponse from(PreAnalysisEntity preAnalysis){
         return AnalysisResponse.builder()
+                .analysisId(preAnalysis.getId())
+                .createdAt(preAnalysis.getCreatedAt())
                 .pdfReportId(preAnalysis.getPreReportEntity() != null ? preAnalysis.getPreReportEntity().getId() : null)
                 .nickname(preAnalysis.getNickname())
                 .address(preAnalysis.getAddress().getAddressName())

@@ -1,5 +1,8 @@
 package com.house.houseviewing.api.query.service;
 
+import com.house.houseviewing.api.query.dto.AnalysisHistoryPageResponse;
+import com.house.houseviewing.api.query.dto.AnalysisHistoryRow;
+import com.house.houseviewing.api.query.repository.AnalysisHistoryQueryRepository;
 import com.house.houseviewing.domain.analysis.postanalysis.dto.response.AnalysisResponse;
 import com.house.houseviewing.domain.analysis.postanalysis.dto.response.PostContractDiagnosisResponse;
 import com.house.houseviewing.domain.analysis.postanalysis.entity.PostAnalysisEntity;
@@ -17,19 +20,24 @@ import com.house.houseviewing.domain.subscription.enums.FreeDiagnosisStage;
 import com.house.houseviewing.domain.subscription.enums.FreeDiagnosisStatus;
 import com.house.houseviewing.domain.subscription.service.FreeDiagnosisClaim;
 import com.house.houseviewing.domain.subscription.service.FreeDiagnosisPersistenceService;
+import com.house.houseviewing.domain.common.RiskLevel;
 import com.house.houseviewing.global.exception.AppException;
+import com.house.houseviewing.global.exception.ExceptionCode;
 import com.house.houseviewing.global.file.pdf.dto.PdfDownloadResponse;
 import com.house.houseviewing.global.file.pdf.dto.PdfUploadResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class AnalysisQueryService {
+
+    private static final long PAGE_SIZE = 10L;
+    private static final long MAX_OFFSET = 10_000L;
 
     private final PostAnalysisService postAnalysisService;
     private final PreAnalysisService preAnalysisService;
@@ -37,6 +45,7 @@ public class AnalysisQueryService {
     private final PostReportRetryService postReportRetryService;
     private final PreReportService preReportService;
     private final FreeDiagnosisPersistenceService freeDiagnosisPersistenceService;
+    private final AnalysisHistoryQueryRepository analysisHistoryQueryRepository;
 
     public PostContractDiagnosisResponse executePostContractDiagnosis(Long houseId, MultipartFile snapshot){
         PostAnalysisEntity analyze = postAnalysisService.postRegister(houseId, snapshot);
@@ -116,18 +125,43 @@ public class AnalysisQueryService {
                 .build();
     }
 
-    public List<AnalysisResponse> getAnalyses(Long userId){
-        List<AnalysisResponse> postAnalyses = postAnalysisService.getPostAnalyses(userId);
-        List<AnalysisResponse> preAnalyses = preAnalysisService.getPreAnalyses(userId);
+    public AnalysisHistoryPageResponse getAnalyses(Long userId, long offset, RiskLevel riskLevel){
+        validateOffset(offset);
+        long limit = Math.addExact(offset, PAGE_SIZE + 1);
 
-        List<AnalysisResponse> result = new ArrayList<>();
-        result.addAll(postAnalyses);
-        result.addAll(preAnalyses);
+        List<AnalysisHistoryRow> rows = new java.util.ArrayList<>();
+        rows.addAll(analysisHistoryQueryRepository.findPostAnalyses(userId, riskLevel, 0L, limit));
+        rows.addAll(analysisHistoryQueryRepository.findPreAnalyses(userId, riskLevel, 0L, limit));
+        rows.sort(historyOrder());
 
-        return result;
+        return page(rows.stream().skip(offset).limit(PAGE_SIZE + 1).toList(), offset);
     }
 
-    public List<AnalysisResponse> getDiffAnalyses(Long userId){
-        return postAnalysisService.getDiffAnalyses(userId);
+    public AnalysisHistoryPageResponse getDiffAnalyses(Long userId, long offset, RiskLevel riskLevel){
+        validateOffset(offset);
+        List<AnalysisHistoryRow> rows = analysisHistoryQueryRepository.findDiffAnalyses(userId, riskLevel, offset, PAGE_SIZE + 1);
+        return page(rows, offset);
+    }
+
+    private void validateOffset(long offset) {
+        if (offset < 0 || offset > MAX_OFFSET) {
+            throw new AppException(ExceptionCode.INVALID_PAGING_REQUEST, "offset은 0 이상 10000 이하이어야 합니다.");
+        }
+    }
+
+    private Comparator<AnalysisHistoryRow> historyOrder() {
+        return Comparator.comparing(AnalysisHistoryRow::createdAt, Comparator.reverseOrder())
+                .thenComparing(row -> "POST".equals(row.analysisType()) ? 0 : 1)
+                .thenComparing(AnalysisHistoryRow::analysisId, Comparator.reverseOrder());
+    }
+
+    private AnalysisHistoryPageResponse page(List<AnalysisHistoryRow> rows, long offset) {
+        boolean hasNext = rows.size() > PAGE_SIZE;
+        List<AnalysisResponse> items = rows.stream()
+                .limit(PAGE_SIZE)
+                .map(AnalysisHistoryRow::toResponse)
+                .toList();
+        Long nextOffset = hasNext ? Math.addExact(offset, items.size()) : null;
+        return new AnalysisHistoryPageResponse(items, nextOffset, hasNext);
     }
 }

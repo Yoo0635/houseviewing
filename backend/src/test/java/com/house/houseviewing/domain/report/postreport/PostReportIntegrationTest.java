@@ -3,6 +3,7 @@ package com.house.houseviewing.domain.report.postreport;
 import com.house.houseviewing.domain.analysis.postanalysis.entity.PostAnalysisEntity;
 import com.house.houseviewing.domain.analysis.postanalysis.enums.AnalysisType;
 import com.house.houseviewing.domain.analysis.postanalysis.repository.PostAnalysisRepository;
+import com.house.houseviewing.domain.analysis.postanalysis.service.PostAnalysisService;
 import com.house.houseviewing.domain.common.RiskLevel;
 import com.house.houseviewing.domain.contract.entity.ContractEntity;
 import com.house.houseviewing.domain.contract.dto.request.ContractRegisterRequest;
@@ -34,17 +35,16 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.*;
 
 @SpringBootTest
-@Transactional
 public class PostReportIntegrationTest {
 
     @Autowired PostReportService postReportService;
+    @Autowired PostAnalysisService postAnalysisService;
     @Autowired PostReportRepository postReportRepository;
     @Autowired PostAnalysisRepository postAnalysisRepository;
     @Autowired HouseService houseService;
@@ -63,20 +63,20 @@ public class PostReportIntegrationTest {
     @Test
     @DisplayName("사후 리포트 저장 및 조회")
     void 사후_리포트_저장(){
+        given(snapshotAnalysisService.postAnalyze(any()))
+                .willReturn(PostAnalysisEntity.builder()
+                        .riskLevel(RiskLevel.SAFE)
+                        .analysisType(AnalysisType.BASIC)
+                        .mainReason("안전")
+                        .ltvScore(85)
+                        .rawData("{\"test\": true}")
+                        .build());
+
         UserEntity user = getUserEntity();
         HouseEntity house = getHouseEntity(user);
-        ContractEntity contract = getContract(house);
+        getContract(house);
 
-        PostAnalysisEntity analysis = PostAnalysisEntity.builder()
-                .riskLevel(RiskLevel.SAFE)
-                .analysisType(AnalysisType.BASIC)
-                .mainReason("안전")
-                .ltvScore(85)
-                .rawData("{\"test\": true}")
-                .build();
-        analysis.addHouse(house);
-        analysis.addContract(contract);
-        PostAnalysisEntity savedAnalysis = postAnalysisRepository.save(analysis);
+        PostAnalysisEntity savedAnalysis = postAnalysisService.postRegister(house.getId(), null);
 
         given(pdfReportTransferAndReceiveService.postTransferAndReceive(any()))
                 .willReturn(PdfUploadResult.builder()
@@ -94,7 +94,7 @@ public class PostReportIntegrationTest {
     }
 
     private UserEntity getUserEntity() {
-        UserEntity user = UserFixture.createDefault().build();
+        UserEntity user = UserFixture.createUnique().build();
         UserRegisterRequest requestUser = UserFixture.createRegister(user).build();
         userService.register(requestUser);
         return userRepository.findByLoginId(user.getLoginId()).orElseThrow();

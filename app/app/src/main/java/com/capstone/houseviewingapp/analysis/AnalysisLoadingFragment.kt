@@ -371,10 +371,12 @@ class AnalysisLoadingFragment : Fragment() {
             val analyses = AnalysisRepositoryProvider.repository
                 .getAnalyses(accessToken)
                 .getOrNull()
+                ?.items
                 .orEmpty()
             val diffAnalyses = AnalysisRepositoryProvider.repository
                 .getDiffAnalyses(accessToken)
                 .getOrNull()
+                ?.items
                 .orEmpty()
             val candidates = when (source) {
                 // 자동 감지는 change-diagnoses(DIFF) 결과와 맞춰야 PDF/카드 등급 불일치가 줄어든다.

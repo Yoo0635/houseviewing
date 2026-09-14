@@ -3,7 +3,8 @@ package com.capstone.houseviewingapp.analysis
 import android.content.Context
 import android.net.Uri
 import android.webkit.MimeTypeMap
-import com.capstone.houseviewingapp.analysis.model.AnalysisResponse
+import com.capstone.houseviewingapp.analysis.model.AnalysisHistoryPageResponse
+import com.capstone.houseviewingapp.analysis.model.ApiRiskLevel
 import com.capstone.houseviewingapp.analysis.model.PdfDownloadResponse
 import com.capstone.houseviewingapp.analysis.model.PreContractDiagnosisRequest
 import com.capstone.houseviewingapp.data.remote.NetworkModule
@@ -65,12 +66,20 @@ class RemoteAnalysisRepository : AnalysisRepository {
         ).executeApi()
     }
 
-    override suspend fun getAnalyses(accessToken: String): Result<List<AnalysisResponse>> {
-        return analysisApi.getAnalyses(bearer(accessToken)).executeApi()
+    override suspend fun getAnalyses(
+        accessToken: String,
+        offset: Long,
+        riskLevel: ApiRiskLevel?
+    ): Result<AnalysisHistoryPageResponse> {
+        return analysisApi.getAnalyses(bearer(accessToken), offset, riskLevel).executeApi()
     }
 
-    override suspend fun getDiffAnalyses(accessToken: String): Result<List<AnalysisResponse>> {
-        return analysisApi.getDiffAnalyses(bearer(accessToken)).executeApi()
+    override suspend fun getDiffAnalyses(
+        accessToken: String,
+        offset: Long,
+        riskLevel: ApiRiskLevel?
+    ): Result<AnalysisHistoryPageResponse> {
+        return analysisApi.getDiffAnalyses(bearer(accessToken), offset, riskLevel).executeApi()
     }
 
     private fun createFilePart(context: Context, fileUri: String): Result<MultipartBody.Part> {

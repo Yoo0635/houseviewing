@@ -30,6 +30,15 @@ public class UserFixture {
                 .email("yooyoo9191@gmail.com");
     }
 
+    public static UserEntity.UserEntityBuilder createUnique(){
+        String suffix = java.util.UUID.randomUUID().toString();
+        return UserEntity.builder()
+                .name("유인근")
+                .loginId("yooyoo9191-" + suffix)
+                .password("okok0630!")
+                .email("yooyoo9191-" + suffix + "@gmail.com");
+    }
+
     public static UserEntity createPremium(){
         UserEntity entity = UserEntity.builder()
                 .name("유인근")
