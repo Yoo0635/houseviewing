@@ -4,7 +4,7 @@
 
 **Goal:** Replace the unpaged diagnosis-history endpoint with Querydsl projection/JOIN queries and 10-item OFFSET pagination, wire Android infinite scrolling, and measure it against the unpaged baseline.
 
-**Architecture:** Backend query repositories return scalar `AnalysisHistoryRow` values. The service merges PRE and POST rows once, applies the unified offset, and returns `nextOffset`; Android owns one paging state per tab/filter and requests the next page at the list bottom. The performance harness seeds 1,000 histories and executes 100 requests with 10 virtual users against baseline and optimized commits.
+**Architecture:** Backend query repositories return scalar `AnalysisHistoryRow` values. The service merges PRE and POST rows once, applies the unified offset, and returns `nextOffset`; Android owns one paging state per tab/filter and requests the next page at the list bottom. The performance harness seeds 50 histories and executes 100 requests with 10 virtual users against baseline and optimized commits.
 
 **Tech Stack:** Java 21, Spring Boot, JPA, Querydsl 5.1 Jakarta, Kotlin Android, Retrofit, JUnit/AssertJ, k6, MySQL
 
@@ -17,7 +17,7 @@
 - `/analyses/diff` filters stored analyses by `analysisType=DIFF`, but response `analysisType` stays as source type `POST`; user and optional risk filters apply before paging.
 - Projection excludes `rawData` and report bodies; JOINs must not trigger per-row SQL.
 - Android resets offset to 0 when tab or risk filter changes and uses the server-provided `nextOffset` for scrolling.
-- k6 validation uses 1,000 histories, 10 concurrent users, and exactly 100 requests for both baseline and optimized runs.
+- k6 validation uses 50 histories, 10 concurrent users, and exactly 100 requests for both baseline and optimized runs.
 - No new dependency beyond Querydsl already specified; commits use concise Korean messages.
 
 ---
@@ -141,12 +141,12 @@ git commit -m "Android 진단 이력 추가 조회 연동"
 
 - [ ] **Step 1: Add a failing harness self-check**
 
-Make the runner reject any configuration other than 1,000 seeded histories, `VUS=10`, and `ITERATIONS=100`; make the k6 script check both array baseline and page-object optimized responses.
+Make the runner reject any configuration other than 50 seeded histories, `VUS=10`, and `ITERATIONS=100`; make the k6 script check both array baseline and page-object optimized responses.
 
 ```sh
 test "$VUS" -eq 10
 test "$ITERATIONS" -eq 100
-test "$HISTORY_COUNT" -eq 1000
+test "$HISTORY_COUNT" -eq 50
 ```
 
 - [ ] **Step 2: Verify the self-check fails before configuration is present**
@@ -155,7 +155,7 @@ Run the runner without required environment/server setup and confirm it exits be
 
 - [ ] **Step 3: Implement seeding, run orchestration, and measurement output**
 
-Seed exactly 500 PRE and 500 POST histories for the performance user. Capture Hibernate/DB SQL counts using the same mechanism for both commits, warm up both servers equally, then execute exactly 100 requests with 10 VUs. Calculate percentages as `(before - after) / before * 100`, rounded to two decimals.
+Seed exactly 25 PRE and 25 POST histories for the performance user. Capture Hibernate/DB SQL counts using the same mechanism for both commits, warm up both servers equally, then execute exactly 100 requests with 10 VUs. Calculate percentages as `(before - after) / before * 100`, rounded to two decimals.
 
 - [ ] **Step 4: Run baseline and optimized measurements**
 

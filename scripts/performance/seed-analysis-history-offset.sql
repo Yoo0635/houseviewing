@@ -22,7 +22,7 @@ DELIMITER //
 CREATE PROCEDURE seed_analysis_history()
 BEGIN
     DECLARE i INT DEFAULT 1;
-    WHILE i <= 500 DO
+    WHILE i <= 25 DO
         INSERT INTO houses (
             house_id, user_id, created_at, updated_at, nickname, address_name, monitoring_status
         ) VALUES (

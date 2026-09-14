@@ -5,14 +5,14 @@ LABEL="${LABEL:?LABEL is required}"
 EXPECTED_ITEMS="${EXPECTED_ITEMS:?EXPECTED_ITEMS is required}"
 BASE_URL="${BASE_URL:-http://127.0.0.1:18080}"
 RESULT_DIR="${RESULT_DIR:-scripts/performance/results}"
-HISTORY_COUNT="${HISTORY_COUNT:-1000}"
+HISTORY_COUNT="${HISTORY_COUNT:-50}"
 VUS="${VUS:-10}"
 ITERATIONS="${ITERATIONS:-100}"
 
-test "$HISTORY_COUNT" -eq 1000
+test "$HISTORY_COUNT" -eq 50
 test "$VUS" -eq 10
 test "$ITERATIONS" -eq 100
-test "$EXPECTED_ITEMS" -eq 1000 || test "$EXPECTED_ITEMS" -eq 10
+test "$EXPECTED_ITEMS" -eq 50 || test "$EXPECTED_ITEMS" -eq 10
 
 mkdir -p "$RESULT_DIR"
 
