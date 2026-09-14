@@ -210,27 +210,34 @@ class AnalysisFragment : Fragment(R.layout.fragment_analysis) {
         val context = requireContext()
         val accessToken = AuthTokenLocalStore.getAccessToken(context).orEmpty()
         if (accessToken.isBlank()) return
+        val requestedSource = selectedSource()
+        val requestedRisk = selectedRiskFilter()
         isPaging = true
         binding.pagingProgressBar.visibility = View.VISIBLE
         viewLifecycleOwner.lifecycleScope.launch {
-            val result = historyPager.loadNext(accessToken, selectedSource(), selectedRiskFilter())
-            result.onSuccess { records ->
-                val localByReportId = AnalysisLocalStore.getRecords(context)
-                    .mapNotNull { local -> local.pdfReportId?.let { it to local } }
-                    .toMap()
-                allRecords = records.map { server ->
-                    val local = server.pdfReportId?.let(localByReportId::get)
-                    server.copy(sourcePdfUri = local?.sourcePdfUri)
-                }
-                applyFilters()
-            }.onFailure {
-                if (allRecords.isEmpty()) {
-                    allRecords = AnalysisLocalStore.getRecords(context)
+            val result = historyPager.loadNext(accessToken, requestedSource, requestedRisk)
+            val stillSelected = _binding != null &&
+                selectedSource() == requestedSource && selectedRiskFilter() == requestedRisk
+            if (stillSelected) {
+                result.onSuccess { records ->
+                    val localByReportId = AnalysisLocalStore.getRecords(context)
+                        .mapNotNull { local -> local.pdfReportId?.let { it to local } }
+                        .toMap()
+                    allRecords = records.map { server ->
+                        val local = server.pdfReportId?.let(localByReportId::get)
+                        server.copy(sourcePdfUri = local?.sourcePdfUri)
+                    }
                     applyFilters()
+                }.onFailure {
+                    if (allRecords.isEmpty()) {
+                        allRecords = AnalysisLocalStore.getRecords(context)
+                        applyFilters()
+                    }
                 }
             }
             isPaging = false
             _binding?.pagingProgressBar?.visibility = View.GONE
+            if (_binding != null && !stillSelected) loadNextPage()
         }
     }
 

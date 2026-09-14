@@ -15,10 +15,6 @@ class AnalysisHistoryPager(
 
     private val states = mutableMapOf<Key, State>()
 
-    fun currentItems(source: RecordSource, riskLevel: ApiRiskLevel?): List<AnalysisRecordItem> {
-        return states[key(source, riskLevel)]?.items.orEmpty()
-    }
-
     fun reset(source: RecordSource, riskLevel: ApiRiskLevel?) {
         states.remove(key(source, riskLevel))
     }

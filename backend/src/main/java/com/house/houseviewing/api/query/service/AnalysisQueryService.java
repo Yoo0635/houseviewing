@@ -145,7 +145,7 @@ public class AnalysisQueryService {
 
     private void validateOffset(long offset) {
         if (offset < 0 || offset > MAX_OFFSET) {
-            throw new AppException(ExceptionCode.INVALID_PDF_REQUEST, "offset은 0 이상 10000 이하이어야 합니다.");
+            throw new AppException(ExceptionCode.INVALID_PAGING_REQUEST, "offset은 0 이상 10000 이하이어야 합니다.");
         }
     }
 

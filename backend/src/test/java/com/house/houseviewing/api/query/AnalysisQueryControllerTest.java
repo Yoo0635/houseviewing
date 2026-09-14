@@ -60,7 +60,7 @@ class AnalysisQueryControllerTest {
 
     @Test
     void 음수_offset은_400이다() throws Exception {
-        willThrow(new AppException(ExceptionCode.INVALID_PDF_REQUEST, "offset은 0 이상 10000 이하이어야 합니다."))
+        willThrow(new AppException(ExceptionCode.INVALID_PAGING_REQUEST, "offset은 0 이상 10000 이하이어야 합니다."))
                 .given(analysisQueryService).getAnalyses(1L, -1L, null);
 
         mockMvc.perform(get("/analyses").param("offset", "-1"))
