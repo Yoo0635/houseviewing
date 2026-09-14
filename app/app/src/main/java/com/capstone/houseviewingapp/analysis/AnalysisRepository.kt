@@ -1,7 +1,8 @@
 package com.capstone.houseviewingapp.analysis
 
 import android.content.Context
-import com.capstone.houseviewingapp.analysis.model.AnalysisResponse
+import com.capstone.houseviewingapp.analysis.model.AnalysisHistoryPageResponse
+import com.capstone.houseviewingapp.analysis.model.ApiRiskLevel
 import com.capstone.houseviewingapp.analysis.model.PdfDownloadResponse
 import com.capstone.houseviewingapp.analysis.model.PreContractDiagnosisRequest
 
@@ -26,6 +27,15 @@ interface AnalysisRepository {
         houseId: Long
     ): Result<PdfDownloadResponse>
 
-    suspend fun getAnalyses(accessToken: String): Result<List<AnalysisResponse>>
-    suspend fun getDiffAnalyses(accessToken: String): Result<List<AnalysisResponse>>
+    suspend fun getAnalyses(
+        accessToken: String,
+        offset: Long = 0L,
+        riskLevel: ApiRiskLevel? = null
+    ): Result<AnalysisHistoryPageResponse>
+
+    suspend fun getDiffAnalyses(
+        accessToken: String,
+        offset: Long = 0L,
+        riskLevel: ApiRiskLevel? = null
+    ): Result<AnalysisHistoryPageResponse>
 }
